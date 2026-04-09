@@ -1,0 +1,83 @@
+project:
+  name: SHM-DSS
+  version: 1.0.0
+  seed: 42
+  log_level: INFO
+data:
+  use_synthetic: true
+  raw_dir: data/raw
+  processed_dir: data/processed
+  sampling_rate: 12000
+  window_size: 1024
+  overlap: 0.5
+  classes:
+    0: Normal
+    1: Inner Race Fault
+    2: Outer Race Fault
+    3: Ball Fault
+  train_frac: 0.7
+  val_frac: 0.15
+  test_frac: 0.15
+features:
+  time_domain:
+  - rms
+  - kurtosis
+  - skewness
+  - crest_factor
+  - peak_to_peak
+  - shape_factor
+  - impulse_factor
+  - zero_crossing_rate
+  freq_domain:
+    enabled: true
+    n_fft_bins: 64
+  use_raw_window: true
+models:
+  baseline:
+    type: RandomForest
+    n_estimators: 300
+    max_depth: null
+    min_samples_split: 4
+    class_weight: balanced
+  advanced:
+    type: CNN1D
+    channels:
+    - 64
+    - 128
+    - 128
+    kernel_size: 5
+    dropout: 0.3
+    fc_dim: 256
+  anomaly:
+    type: IsolationForest
+    contamination: 0.05
+    n_estimators: 200
+    random_state: 42
+training:
+  batch_size: 64
+  epochs: 40
+  lr: 0.001
+  weight_decay: 0.0001
+  patience: 8
+  device: cpu
+agent:
+  safe_threshold: 0.8
+  warning_threshold: 0.55
+  anomaly_threshold: -0.25
+api:
+  host: 0.0.0.0
+  port: 8000
+  cors_origins:
+  - http://localhost:8501
+serving:
+  max_batch_size: 256
+  prediction_cache:
+    enabled: true
+    max_entries: 2048
+    ttl_seconds: 300
+artifacts:
+  models_dir: artifacts/models
+  plots_dir: artifacts/plots
+  reports_dir: artifacts/reports
+  runs_dir: artifacts/runs
+  log_file: artifacts/reports/run.log

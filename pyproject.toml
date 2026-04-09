@@ -1,0 +1,21 @@
+[build-system]
+requires      = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name    = "shm-dss"
+version = "1.0.0"
+description = "Applied SHM system for intelligent structural diagnostics."
+readme = "README.md"
+requires-python = ">=3.11"
+
+[project.scripts]
+shm = "shm.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "pipelines*", "experiments*", "app*", "shm*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-v --tb=short"

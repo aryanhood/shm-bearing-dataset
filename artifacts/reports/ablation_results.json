@@ -1,0 +1,22 @@
+[
+  {
+    "model": "rf",
+    "feature_set": "time+freq",
+    "window_size": 1024,
+    "accuracy": 1.0,
+    "f1_weighted": 1.0,
+    "roc_auc": 1.0,
+    "false_alarm": 0.0,
+    "time_s": 3.9
+  },
+  {
+    "model": "rf",
+    "feature_set": "freq_only",
+    "window_size": 512,
+    "accuracy": 0.99,
+    "f1_weighted": 0.99,
+    "roc_auc": 1.0,
+    "false_alarm": 0.0,
+    "time_s": 3.8
+  }
+]

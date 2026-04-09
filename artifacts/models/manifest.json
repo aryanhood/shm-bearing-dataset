@@ -1,0 +1,29 @@
+{
+  "project_version": "1.0.0",
+  "window_size": 1024,
+  "sampling_rate": 12000,
+  "classes": {
+    "0": "Normal",
+    "1": "Inner Race Fault",
+    "2": "Outer Race Fault",
+    "3": "Ball Fault"
+  },
+  "feature_flags": {
+    "include_time": true,
+    "include_freq": true,
+    "n_fft_bins": 64
+  },
+  "available_models": {
+    "rf": true,
+    "cnn": true,
+    "anomaly": true,
+    "preprocessor": true
+  },
+  "artifact_hashes": {
+    "preprocessor": "3c9c8c8dd33d1175a9d8a759b3ba95e84b3fb3738a2af6bc8c2af07a6c3e01f1",
+    "config_snapshot": "5b4cf164a34e60272309d11056749b7d808ec88a13b586d5b0c1353523e413da",
+    "rf_model": "e78b27bba1402d93391945b6fa15341b881b1e392f6613c0949fd17a04ad8178",
+    "cnn_model": "a3d9171b9b68e23fd48c0acab84bb19fbf9914ed154c1e3b71e29f43cdfecaf5",
+    "anomaly_model": "84486bc0a4c55fc22512790446c2ec87063157e68ea2390b3460e34564a94317"
+  }
+}

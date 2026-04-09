@@ -1,0 +1,39 @@
+﻿name: Feature request
+description: Propose an enhancement for SHM capability, usability, or reproducibility.
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What real user or engineering problem does this address?
+      placeholder: Current diagnostics cannot ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe your preferred approach.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: List other options and trade-offs.
+  - type: textarea
+    id: impact
+    attributes:
+      label: Expected impact
+      description: How will this improve data -> detection -> insight workflow?
+      placeholder: Improves false-alarm control and on-call maintenance decisions.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I checked existing issues and discussions for similar proposals.
+          required: true

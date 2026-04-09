@@ -1,0 +1,47 @@
+﻿name: Bug report
+description: Report a reproducible defect in SHM pipelines, models, or API behavior.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. Please include enough detail for us to reproduce the issue quickly.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened and what did you expect?
+      placeholder: A short bug summary.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include commands, config edits, and data mode used.
+      placeholder: |
+        1. python -m shm train
+        2. python -m shm serve
+        3. POST /predict with ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Python version, OS, and package details.
+      placeholder: Python 3.11 on Windows 11, torch 2.x ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or traceback
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues before opening this bug report.
+          required: true
