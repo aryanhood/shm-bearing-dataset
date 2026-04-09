@@ -1,4 +1,4 @@
-# SHM Decision-Support System (Production-Oriented)
+# SHM Decision-Support System 
 
 An end-to-end Structural Health Monitoring (SHM) system that converts vibration windows into actionable maintenance decisions:
 
@@ -133,10 +133,3 @@ curl -X POST http://localhost:8000/predict ^
 - [Engineering Audit](docs/ENGINEERING_AUDIT.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)
-
-## Resume-Ready Highlights
-
-- Built a production-style SHM decision-support service with unified inference contracts across CLI, API, and dashboard.
-- Added artifact compatibility and SHA-256 integrity checks to prevent serving stale or tampered model bundles.
-- Implemented bounded TTL caching, batch guardrails, and runtime telemetry (`/metrics`) to improve latency and operational visibility.
-- Hardened data/config pipelines by fixing UTF-8 BOM parsing issues and adding strict validation for stratified preprocessing edge cases.
