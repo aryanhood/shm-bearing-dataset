@@ -1,0 +1,131 @@
+[
+  {
+    "protocol": "unseen_load",
+    "description": "train on 3 motor loads, test on the 4th",
+    "n_windows": 2331,
+    "accuracy": 0.9991,
+    "macro_f1": 0.9993,
+    "per_class_recall": {
+      "normal": 1.0,
+      "inner": 1.0,
+      "outer": 1.0,
+      "ball": 0.9972
+    },
+    "folds": [
+      {
+        "fold": 0,
+        "n_test": 560,
+        "accuracy": 1.0
+      },
+      {
+        "fold": 1,
+        "n_test": 590,
+        "accuracy": 0.9966
+      },
+      {
+        "fold": 2,
+        "n_test": 590,
+        "accuracy": 1.0
+      },
+      {
+        "fold": 3,
+        "n_test": 591,
+        "accuracy": 1.0
+      }
+    ],
+    "classes": [
+      "normal",
+      "inner",
+      "outer",
+      "ball"
+    ],
+    "confusion": [
+      [
+        206,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        709,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        708,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        706
+      ]
+    ]
+  },
+  {
+    "protocol": "unseen_fault_size",
+    "description": "train on 2 fault diameters, test on the 3rd",
+    "n_windows": 2272,
+    "accuracy": 0.5915,
+    "macro_f1": 0.6688,
+    "per_class_recall": {
+      "normal": 1.0,
+      "inner": 0.646,
+      "outer": 0.3305,
+      "ball": 0.7133
+    },
+    "folds": [
+      {
+        "fold": 0,
+        "n_test": 738,
+        "accuracy": 0.9973
+      },
+      {
+        "fold": 1,
+        "n_test": 767,
+        "accuracy": 0.3403
+      },
+      {
+        "fold": 2,
+        "n_test": 767,
+        "accuracy": 0.4524
+      }
+    ],
+    "classes": [
+      "normal",
+      "inner",
+      "outer",
+      "ball"
+    ],
+    "confusion": [
+      [
+        147,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        458,
+        235,
+        16
+      ],
+      [
+        0,
+        238,
+        234,
+        236
+      ],
+      [
+        0,
+        26,
+        177,
+        505
+      ]
+    ]
+  }
+]

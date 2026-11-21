@@ -1,135 +1,139 @@
-# SHM Decision-Support System 
+<h1 align="center">BearingScope — Live Explainable Bearing-Fault Diagnosis</h1>
 
-An end-to-end Structural Health Monitoring (SHM) system that converts vibration windows into actionable maintenance decisions:
+<p align="center">
+  <a href="https://aryanhood.github.io/shm-bearing-dataset/"><img src="https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-22d3ee?style=flat&logo=github" alt="Live Demo"></a>
+  <a href="https://github.com/aryanhood/shm-bearing-dataset/actions/workflows/ci.yml"><img src="https://github.com/aryanhood/shm-bearing-dataset/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="Python 3.11–3.13">
+  <img src="https://img.shields.io/badge/web-React%2019%20%2B%20TypeScript-3178c6" alt="React 19 + TypeScript">
+  <img src="https://img.shields.io/badge/license-MIT-emerald" alt="MIT License">
+</p>
 
-- Class prediction (`Normal`, `Inner Race`, `Outer Race`, `Ball Fault`)
-- Health index (0 to 1)
-- Operational status (`SAFE`, `WARNING`, `CRITICAL`)
-- Auditable rationale for action
+<p align="center">
+  <b>Raw 12 kHz Vibration → Hilbert Envelope Physics → <code>SAFE</code> / <code>WATCH</code> / <code>CRITICAL</code></b><br>
+  Real-time rotating-machinery diagnostics trained on the <a href="https://engineering.case.edu/bearingdatacenter">CWRU Bearing Dataset</a> and compiled to a 14 KB JSON model running <b>100% in your browser</b> with zero backend.
+</p>
 
-This repo is intentionally structured to demonstrate engineering depth, not just model training.
+<p align="center">
+  <b><a href="https://aryanhood.github.io/shm-bearing-dataset/">Open Live Interactive Studio →</a></b>
+</p>
 
-## Problem
+---
 
-Industrial rotating equipment degrades gradually, while maintenance teams often receive noisy and ambiguous vibration signals. A useful system must:
+## 1. Output First (`Raw Vibration` → `Live Diagnosis`)
 
-- classify fault type reliably
-- detect out-of-distribution behavior
-- convert model output into decision policy
-- remain reproducible and debuggable across CLI/API/dashboard paths
+Stream unseen **3 HP CWRU drive-end recordings** (or drop in your own 12 kHz `.csv`) and watch BearingScope demodulate the signal, lock onto the physical defect harmonics (`BPFI`, `BPFO`, `BSF`), and emit a maintenance verdict in real time:
 
-## Approach
+<p align="center">
+  <img src="assets/demo_live.gif" alt="BearingScope live diagnosis streaming unseen 3 HP CWRU recordings" width="960">
+</p>
+
+- **Zero leakage in the live demo:** the deployed model is trained strictly on motor loads **0, 1, and 2 HP**. Every recording streamed in the animation and on the [live web studio](https://aryanhood.github.io/shm-bearing-dataset/) comes from the held-out **3 HP** operating condition.
+- **Bit-exact browser inference:** the FFT, Hilbert envelope demodulator, 16-feature extractor, and MLP forward pass run directly in TypeScript (`web/src/lib/`) and are verified in CI to match Python within `1e-6` relative tolerance.
+
+---
+
+## 2. How It Works (In 3 Simple Steps)
+
+When a rolling element strikes a microscopic spall on a bearing race, it rings the housing like a bell inside a high-frequency structural resonance (`1.5–5.5 kHz`). BearingScope turns that physical signature into a decision in three stages:
+
+<p align="center">
+  <img src="assets/how_it_works.png" alt="How BearingScope works: raw vibration to Hilbert envelope to MLP decision" width="960">
+</p>
+
+1. **Window the 12 kHz signal (`bearingscope/data.py`):** slice non-overlapping `2048`-sample windows (`171 ms`) from the drive-end accelerometer. Normal baseline recordings (`48 kHz` in CWRU) are zero-phase decimated by `4×` to match the `12 kHz` fault rate.
+2. **Demodulate the envelope & extract 16 features (`bearingscope/features.py`):** band-pass `1.5–5.5 kHz`, compute the analytic Hilbert envelope, and measure local peak-to-ring SNR at the `1×`, `2×`, and `3×` harmonics of the SKF 6205-2RS kinematic defect frequencies (`BPFI = 5.415×`, `BPFO = 3.585×`, `BSF = 2.357×` shaft speed), combined with 5 time-domain shape stats and 8 spectral band energies.
+3. **Classify & apply maintenance policy (`bearingscope/model.py`, `bearingscope/decision.py`):** run a `StandardScaler → MLP(32, ReLU) → Softmax` model (`14 KB` JSON) and map class probabilities into an actionable status:
+   - `SAFE` — Normal probability `≥ 0.80` → *No action. Keep monitoring.*
+   - `CRITICAL` — Specific fault probability `≥ 0.80` → *Schedule bearing replacement.*
+   - `WATCH` — Ambiguous window → *Re-check at shorter interval.*
+
+---
+
+## 3. Honest Benchmark (No Window Leakage)
+
+Randomly splitting overlapping windows from the same CWRU recording inflates accuracy toward `100%` because adjacent windows are nearly identical. Instead, BearingScope evaluates on **2,331 non-overlapping windows across all 40 real CWRU recordings** using two strictly recording-grouped protocols:
+
+| Protocol | Split | Accuracy | Macro F1 | Normal Recall | What it tests |
+|---|---|---:|---:|---:|---|
+| **Unseen motor load** | 4-fold (train 3 loads, test 4th) | **99.91%** | **0.999** | 100.0% | Generalizing to a new RPM / torque load |
+| **Unseen fault size** | 3-fold (train 2 diameters, test 3rd) | **59.15%** | **0.669** | 100.0% | Generalizing to a defect size never seen in training |
+
+<p align="center">
+  <img src="assets/confusion_matrix.png" alt="Confusion matrices for unseen motor load vs unseen fault diameter" width="880">
+</p>
+
+**Why show the harder `59.2%` test?** Because it reveals the real engineering boundary: healthy vs. faulty detection stays **100% separable** even on unseen defect diameters, while distinguishing *which* fault occurred degrades when spall geometry (`0.007"` → `0.014"` → `0.021"`) shifts the structural resonance band. Full metrics live in [`artifacts/metrics.json`](artifacts/metrics.json) and the design tradeoffs are documented in [`docs/adr/`](docs/adr/).
+
+---
+
+## 4. Quick Start
+
+### Python CLI (Download real CWRU data, evaluate, train, predict)
+
+```bash
+pip install -e ".[dev]"
+
+# 1. Download the 40 real CWRU 12 kHz drive-end recordings (~120 MB)
+bearingscope download
+
+# 2. Run both grouped cross-validation benchmarks & regenerate confusion matrix
+bearingscope evaluate
+
+# 3. Train on 0-2 HP and export the 14 KB browser model + 3 HP demo stream
+bearingscope train
+
+# 4. Run CLI diagnosis on any single-column 12 kHz CSV
+bearingscope predict path/to/vibration.csv --rpm 1750
+```
+
+### Live Interactive Web Studio (`web/`)
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173` to stream unseen 3 HP CWRU recordings, scrub the 2048-sample analysis window, inspect live `BPFI`/`BPFO`/`BSF` envelope harmonics, or upload your own 12 kHz `.csv`.
+
+---
+
+## 5. Repository Structure
 
 ```text
-signal window
-  -> preprocessor (train-only scaling + deterministic split)
-  -> classifier (RF feature model or CNN1D raw-window model)
-  -> anomaly scoring (IsolationForest)
-  -> decision agent (policy thresholds + rationale)
-  -> API/CLI/dashboard response
+shm-bearing-dataset/
+├── bearingscope/            # Python package: physics, Hilbert features, MLP, grouped eval, CLI
+├── tests/                   # Fast unit, integration, CLI & golden-parity tests (no .mat needed)
+├── web/                     # Zero-backend React 19 + TypeScript live diagnostics studio
+│   ├── src/lib/             # Bit-exact TS port (radix-2 FFT, envelope, MLP, decision + parity tests)
+│   └── public/data/         # Exported 14 KB model.json + unseen 3 HP demo.i16 stream
+├── artifacts/               # Reproducible metrics.json and exported model.json
+├── assets/                  # Live demo GIF, 3-step physics visual, confusion matrices
+├── docs/                    # Architecture overview and ADRs (0001–0003)
+└── .github/workflows/       # CI (Python 3.11–3.13 + Node 22) and automatic GitHub Pages deploy
 ```
 
-Core modules:
+---
 
-- `src/data`: CWRU-style loading, synthetic generation fallback, split/scaling
-- `src/features`: time/frequency feature extraction for RF + anomaly
-- `src/models`: RandomForest, CNN1D, IsolationForest
-- `src/inference`: centralized inference pipeline with compatibility and integrity checks
-- `src/agent`: rule-based decision synthesis
-- `src/api`: FastAPI surface (`/health`, `/metrics`, `/predict`, `/explain`)
-- `pipelines`: train/evaluate/predict/ablation workflows
-
-## Engineering Upgrades Added
-
-Recent hardening changes focus on realistic production constraints:
-
-- Serving controls:
-  - `serving.max_batch_size` to prevent unbounded batch memory spikes
-  - bounded TTL prediction cache (`serving.prediction_cache`) for repeat-window latency reduction
-- Artifact integrity:
-  - SHA-256 checksums stored in manifest during training
-  - checksum verification during pipeline load to detect corruption/drift
-- Runtime observability:
-  - `GET /metrics` (requests, failure rate, latency percentiles, cache hit rate)
-  - per-request ID and process-time headers in API middleware
-- Input and data safety:
-  - overlap validation in data loader (`0 <= overlap < 1`)
-  - clear failure if CWRU files exist but yield zero valid windows
-  - strict preprocessor validation for shape/class-count stratification viability
-- Config robustness:
-  - BOM-safe YAML loading (`utf-8-sig`) to avoid silent key corruption (`project` vs `\ufeffproject`)
-
-## Tradeoffs
-
-- Cache vs correctness:
-  - Cache keys include model choice + manifest fingerprint + signal hash.
-  - This preserves correctness across artifact changes at the cost of extra key computation.
-- Strict compatibility vs flexibility:
-  - Startup blocks on checksum/manifest mismatch.
-  - Safer for production, stricter for quick experimentation.
-- Batch guardrails vs throughput:
-  - Max batch size protects latency and memory stability.
-  - Large offline scoring runs should use chunked processing.
-
-## Quick Start
-
-Use Python 3.11+.
+## 6. Verification & Quality Gates
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-pip install -e .
+make check
 ```
 
-Train artifacts:
+| Layer | Tooling | Gate |
+|---|---|---|
+| Python lint & format | `ruff check` + `ruff format --check` | Zero warnings |
+| Python typing | `mypy --strict` | Zero errors across all source & test files |
+| Python tests | `pytest --cov=bearingscope` | Unit, grouped CV, CLI & golden-fixture parity |
+| Web studio | `tsc --noEmit`, `biome check`, `vitest`, `vite build` | Zero warnings, `< 1e-6` Python↔TS parity, production bundle verified |
+| Live deployment | GitHub Actions → GitHub Pages (`deploy.yml`) | Auto-deploys `web/dist` on every push to `main` |
 
-```bash
-python -m shm train
-```
+---
 
-Evaluate:
+## References
 
-```bash
-python -m shm evaluate
-```
+- **Dataset:** Case Western Reserve University (CWRU) Bearing Data Center — 12 kHz Drive-End & Normal Baseline SKF 6205-2RS JEM recordings ([engineering.case.edu/bearingdatacenter](https://engineering.case.edu/bearingdatacenter)).
+- **Method:** Robert B. Randall & Jérôme Antoni, *"Rolling element bearing diagnostics—A tutorial,"* Mechanical Systems and Signal Processing (2011).
 
-Serve API:
-
-```bash
-python -m shm serve
-```
-
-Run dashboard:
-
-```bash
-streamlit run app/dashboard.py
-```
-
-Run tests:
-
-```bash
-pytest -q
-```
-
-## API Surface
-
-- `GET /health`: artifact readiness + compatibility report
-- `GET /metrics`: runtime telemetry (latency p50/p95/max, failure rate, cache stats)
-- `POST /predict`: one-window prediction with decision output
-- `POST /explain`: RF feature-importance and signal diagnostics
-
-Example:
-
-```bash
-curl -X POST http://localhost:8000/predict ^
-  -H "Content-Type: application/json" ^
-  -d "{\"model\":\"rf\",\"signal\":[0.0,0.1,...]}"
-```
-
-## Documentation
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Engineering Audit](docs/ENGINEERING_AUDIT.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Contributing](CONTRIBUTING.md)
+MIT License — see [LICENSE](LICENSE).

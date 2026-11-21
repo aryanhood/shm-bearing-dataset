@@ -1,0 +1,7 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "files": { "ignore": ["dist", "node_modules", "public/data", "src/lib/__fixtures__"] },
+  "formatter": { "indentStyle": "space", "lineWidth": 100 },
+  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "organizeImports": { "enabled": true }
+}

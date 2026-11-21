@@ -1,49 +1,26 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-.Python
 *.egg-info/
-dist/
-build/
-.eggs/
-
-# Virtual environments
 .venv/
-venv/
-env/
-
-# Artifacts (large binaries — track with DVC if needed)
-artifacts/models/*.pkl
-artifacts/models/*.pt
-
-# Logs
-*.log
-logs/
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
-
-# IDE
-.vscode/
-.idea/
-*.swp
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Test coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
-.pytest_cache/
-pytest-cache-files-*/
-**/__pycache__/
+dist/
+build/
 
-# W&B
-wandb/
+# Raw CWRU .mat downloads (~120 MB; regenerated with `bearingscope download`)
+data/raw/*.mat
+data/raw/*.part
 
-# Generated run snapshots
-artifacts/runs/
+# Web
+web/node_modules/
+web/dist/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
