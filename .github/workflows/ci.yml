@@ -28,8 +28,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install package and dev tools
-        run: pip install -e ".[dev]"
+      - name: Install PyTorch CPU and package
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple torch
+          pip install -e ".[train,dev]"
 
       - name: Lint and format
         run: |
@@ -40,25 +42,22 @@ jobs:
         run: mypy
 
       - name: Tests and coverage
-        run: pytest --cov=bearingscope
+        run: pytest --cov=orderguard
 
-  web:
-    name: Web (React + TypeScript)
+  edge-runtime:
+    name: Edge Runtime (No PyTorch)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
+          python-version: "3.12"
+          cache: pip
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install edge-only package
+        run: pip install -e .
 
-      - name: Typecheck, lint, parity tests, and production build
-        run: npm run check
+      - name: Verify ONNX edge inference without PyTorch
+        run: |
+          python -c "from pathlib import Path; import numpy as np; from orderguard.edge import EdgeClassifier; e = EdgeClassifier(Path('artifacts/orderguard.onnx'), Path('artifacts/model_meta.json')); p = e.predict_proba(np.zeros((1, 4, 400), dtype=np.float32)); assert p.shape == (1, 5); print('edge ok:', p.round(4))"

@@ -11,13 +11,9 @@ htmlcov/
 dist/
 build/
 
-# Raw CWRU .mat downloads (~120 MB; regenerated with `bearingscope download`)
-data/raw/*.mat
-data/raw/*.part
-
-# Web
-web/node_modules/
-web/dist/
+# Raw datasets & downloaded .mat / cache files
+data/
+*.part
 
 # OS / editors
 .DS_Store

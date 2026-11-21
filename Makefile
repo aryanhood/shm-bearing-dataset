@@ -1,8 +1,7 @@
-.PHONY: install check lint typecheck test web download evaluate train
+.PHONY: install check lint typecheck test download train benchmark replay plots rebuild
 
 install:
-	pip install -e ".[dev]"
-	cd web && npm install
+	pip install -e ".[train,dev]"
 
 lint:
 	ruff check .
@@ -12,18 +11,23 @@ typecheck:
 	mypy
 
 test:
-	pytest --cov=bearingscope
+	pytest --cov=orderguard
 
-web:
-	cd web && npm run check
-
-check: lint typecheck test web
+check: lint typecheck test
 
 download:
-	bearingscope download
-
-evaluate:
-	bearingscope evaluate
+	orderguard download
 
 train:
-	bearingscope train
+	orderguard train
+
+benchmark:
+	orderguard benchmark
+
+replay:
+	orderguard replay
+
+plots:
+	orderguard plots
+
+rebuild: download train benchmark replay plots

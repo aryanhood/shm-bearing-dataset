@@ -1,139 +1,126 @@
-<h1 align="center">BearingScope — Live Explainable Bearing-Fault Diagnosis</h1>
+<h1 align="center">orderguard</h1>
 
 <p align="center">
-  <a href="https://aryanhood.github.io/shm-bearing-dataset/"><img src="https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-22d3ee?style=flat&logo=github" alt="Live Demo"></a>
+  Encoder-locked Computed Order Tracking, ONNX edge diagnostics, and hysteresis supervisory derating for variable-speed rotating actuators.
+</p>
+
+<p align="center">
   <a href="https://github.com/aryanhood/shm-bearing-dataset/actions/workflows/ci.yml"><img src="https://github.com/aryanhood/shm-bearing-dataset/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="Python 3.11–3.13">
-  <img src="https://img.shields.io/badge/web-React%2019%20%2B%20TypeScript-3178c6" alt="React 19 + TypeScript">
-  <img src="https://img.shields.io/badge/license-MIT-emerald" alt="MIT License">
-</p>
-
-<p align="center">
-  <b>Raw 12 kHz Vibration → Hilbert Envelope Physics → <code>SAFE</code> / <code>WATCH</code> / <code>CRITICAL</code></b><br>
-  Real-time rotating-machinery diagnostics trained on the <a href="https://engineering.case.edu/bearingdatacenter">CWRU Bearing Dataset</a> and compiled to a 14 KB JSON model running <b>100% in your browser</b> with zero backend.
-</p>
-
-<p align="center">
-  <b><a href="https://aryanhood.github.io/shm-bearing-dataset/">Open Live Interactive Studio →</a></b>
+  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-2563eb" alt="Python 3.11-3.13">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-059669" alt="MIT License"></a>
 </p>
 
 ---
 
-## 1. Output First (`Raw Vibration` → `Live Diagnosis`)
+## Output & Proof
 
-Stream unseen **3 HP CWRU drive-end recordings** (or drop in your own 12 kHz `.csv`) and watch BearingScope demodulate the signal, lock onto the physical defect harmonics (`BPFI`, `BPFO`, `BSF`), and emit a maintenance verdict in real time:
+Fixed-speed FFT vibration models break on variable-speed actuators. When shaft speed ramps from **747 to 1,650 RPM** (`I-A-1`), an inner-race defect (`BPFI = 5.428×`) drifts continuously from **68 Hz to 149 Hz**, smearing across a standard time-domain spectrum. Locking onto a **1024-PPR rotary encoder** collapses those smeared harmonics back onto sharp kinematic shaft orders (`1×/2×/3× BPFI` and `BPFI ± 1×` load-zone sidebands):
 
-<p align="center">
-  <img src="assets/demo_live.gif" alt="BearingScope live diagnosis streaming unseen 3 HP CWRU recordings" width="960">
-</p>
+![Time-domain envelope FFT smearing vs encoder-locked Order-SES on I-A-1](assets/fft_vs_order_tracking.png)
 
-- **Zero leakage in the live demo:** the deployed model is trained strictly on motor loads **0, 1, and 2 HP**. Every recording streamed in the animation and on the [live web studio](https://aryanhood.github.io/shm-bearing-dataset/) comes from the held-out **3 HP** operating condition.
-- **Bit-exact browser inference:** the FFT, Hilbert envelope demodulator, 16-feature extractor, and MLP forward pass run directly in TypeScript (`web/src/lib/`) and are verified in CI to match Python within `1e-6` relative tolerance.
+### Closed-Loop Supervisory Replay (Unseen Trial 3)
 
----
+Trained strictly on Trials 1–2 (`458` windows), exported to a single **`256 KB` ONNX** graph (`59,245` params, `8.32e-07` PyTorch↔ONNX max probability diff, **`0.105 ms` p50 / `0.141 ms` p99** single-thread CPU latency), and replayed across three held-out Trial-3 recordings (`H-A-3 → I-C-3 → C-D-3`):
 
-## 2. How It Works (In 3 Simple Steps)
+![Held-out Trial-3 closed-loop replay](assets/closed_loop_replay.png)
 
-When a rolling element strikes a microscopic spall on a bearing race, it rings the housing like a bell inside a high-frequency structural resonance (`1.5–5.5 kHz`). BearingScope turns that physical signature into a decision in three stages:
+| Segment | Motion & Health | Controller Behavior | Actuator Limits |
+|---|---|---|---|
+| `0–10 s` (`H-A-3`) | Healthy, accelerating (`939 → 1,570 RPM`) | Rejects single `0.78` transient spike at `9.52 s` via `3-of-4` dwell | `NOMINAL` (`vel=1.00`, `trq=1.00`) |
+| `10–20 s` (`I-C-3`) | Inner-race fault, up-down ramp | Enters derate at `11.50 s` without triggering unnecessary E-stop | `DERATE` (`vel=0.60`, `trq=0.70`) |
+| `20–30 s` (`C-D-3`) | Combined multi-defect fault, down-up ramp | Escalates at `21.85 s` and slews actuator scales to zero | `SAFE_STOP` (`brake=True`) |
 
-<p align="center">
-  <img src="assets/how_it_works.png" alt="How BearingScope works: raw vibration to Hilbert envelope to MLP decision" width="960">
-</p>
+### 60-Recording Generalization Benchmark
 
-1. **Window the 12 kHz signal (`bearingscope/data.py`):** slice non-overlapping `2048`-sample windows (`171 ms`) from the drive-end accelerometer. Normal baseline recordings (`48 kHz` in CWRU) are zero-phase decimated by `4×` to match the `12 kHz` fault rate.
-2. **Demodulate the envelope & extract 16 features (`bearingscope/features.py`):** band-pass `1.5–5.5 kHz`, compute the analytic Hilbert envelope, and measure local peak-to-ring SNR at the `1×`, `2×`, and `3×` harmonics of the SKF 6205-2RS kinematic defect frequencies (`BPFI = 5.415×`, `BPFO = 3.585×`, `BSF = 2.357×` shaft speed), combined with 5 time-domain shape stats and 8 spectral band energies.
-3. **Classify & apply maintenance policy (`bearingscope/model.py`, `bearingscope/decision.py`):** run a `StandardScaler → MLP(32, ReLU) → Softmax` model (`14 KB` JSON) and map class probabilities into an actionable status:
-   - `SAFE` — Normal probability `≥ 0.80` → *No action. Keep monitoring.*
-   - `CRITICAL` — Specific fault probability `≥ 0.80` → *Schedule bearing replacement.*
-   - `WATCH` — Ambiguous window → *Re-check at shorter interval.*
+Evaluated across all **60 uOttawa recordings** (`699` non-overlapping `16`-revolution windows, 5 health classes, 4 speed profiles, 3 trials) using identical four-band demodulation and amplitude-invariant noise-floor SNR normalization:
 
----
+| Protocol | `time_env_rf` (no encoder) | `order_physics_rf` (COT) | `order_cnn_onnx` (COT + ONNX) |
+|---|---:|---:|---:|
+| `random_window` (5-fold) | 91.3% (F1 0.911) | 97.6% (F1 0.976) | **98.9%** (F1 0.989) |
+| `unseen_trial` (3-fold grouped) | 91.1% (F1 0.910) | 97.0% (F1 0.970) | **97.9%** (F1 0.979) |
+| `unseen_speed_profile` (A/B ↔ C/D) | 86.7% (F1 0.864) | 93.0% (F1 0.928) | **95.7%** (F1 0.957) |
 
-## 3. Honest Benchmark (No Window Leakage)
+![Cross-speed benchmark and unseen-profile confusion matrix](assets/cross_speed_benchmark.png)
 
-Randomly splitting overlapping windows from the same CWRU recording inflates accuracy toward `100%` because adjacent windows are nearly identical. Instead, BearingScope evaluates on **2,331 non-overlapping windows across all 40 real CWRU recordings** using two strictly recording-grouped protocols:
-
-| Protocol | Split | Accuracy | Macro F1 | Normal Recall | What it tests |
-|---|---|---:|---:|---:|---|
-| **Unseen motor load** | 4-fold (train 3 loads, test 4th) | **99.91%** | **0.999** | 100.0% | Generalizing to a new RPM / torque load |
-| **Unseen fault size** | 3-fold (train 2 diameters, test 3rd) | **59.15%** | **0.669** | 100.0% | Generalizing to a defect size never seen in training |
-
-<p align="center">
-  <img src="assets/confusion_matrix.png" alt="Confusion matrices for unseen motor load vs unseen fault diameter" width="880">
-</p>
-
-**Why show the harder `59.2%` test?** Because it reveals the real engineering boundary: healthy vs. faulty detection stays **100% separable** even on unseen defect diameters, while distinguishing *which* fault occurred degrades when spall geometry (`0.007"` → `0.014"` → `0.021"`) shifts the structural resonance band. Full metrics live in [`artifacts/metrics.json`](artifacts/metrics.json) and the design tradeoffs are documented in [`docs/adr/`](docs/adr/).
+Under unseen speed profiles (`A/B ↔ C/D`), encoder-locked Order-SES adds **+9.0 points** over the encoder-free time-envelope baseline, hitting `98.6%` recall on Healthy, `100.0%` Inner, `99.3%` Outer, `98.5%` Combined, and `81.9%` Ball.
 
 ---
 
-## 4. Quick Start
+## How It Works
 
-### Python CLI (Download real CWRU data, evaluate, train, predict)
-
-```bash
-pip install -e ".[dev]"
-
-# 1. Download the 40 real CWRU 12 kHz drive-end recordings (~120 MB)
-bearingscope download
-
-# 2. Run both grouped cross-validation benchmarks & regenerate confusion matrix
-bearingscope evaluate
-
-# 3. Train on 0-2 HP and export the 14 KB browser model + 3 HP demo stream
-bearingscope train
-
-# 4. Run CLI diagnosis on any single-column 12 kHz CSV
-bearingscope predict path/to/vibration.csv --rpm 1750
+```mermaid
+flowchart LR
+    A["1024-PPR Encoder + 200 kHz Accel"] --> B["Sensor Audit + Sub-Sample θ(t)"]
+    B --> C["4-Band Time Envelope + Cubic COT"]
+    C --> D["Order-SES (0.25–25×) → OrderCNN (ONNX, 0.11 ms)"]
+    D --> E["3-State Hysteresis FSM → NOMINAL / DERATE / SAFE_STOP"]
 ```
 
-### Live Interactive Web Studio (`web/`)
-
-```bash
-cd web
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173` to stream unseen 3 HP CWRU recordings, scrub the 2048-sample analysis window, inspect live `BPFI`/`BPFO`/`BSF` envelope harmonics, or upload your own 12 kHz `.csv`.
+- **Instrumentation & audit ([`encoder.py`](orderguard/encoder.py)):** Hysteresis Schmitt trigger (`35% / 65%` voltage span) with sub-sample midpoint interpolation tracks instantaneous RPM and audits both channels for dropouts, rail clipping, or out-of-range speed before inference.
+- **Envelope-first COT ([`order_tracking.py`](orderguard/order_tracking.py), [`features.py`](orderguard/features.py)):** Demodulates four structural bands (`0.5–5`, `5–15`, `15–35`, `35–65 kHz`) in the time domain where housing resonances stay stationary in Hz, applies a `750 Hz` anti-aliasing low-pass, resamples onto `128` samples/rev via PCHIP/cubic splines, and normalizes each `16`-rev Order-SES against its median floor (`log1p(S / median(S))`).
+- **Edge inference ([`model.py`](orderguard/model.py), [`edge.py`](orderguard/edge.py)):** Compact `OrderCNN` exported to a self-contained single-file ONNX graph (`artifacts/orderguard.onnx`), running on CPU via `onnxruntime` with zero PyTorch dependency at runtime.
+- **Supervisory control ([`supervisor.py`](orderguard/supervisor.py)):** `3-of-4` confirmation window, sensor-fault fail-safe, and slew-rate-limited `velocity_scale` / `torque_limit` outputs prevent transient flicker from triggering false stops.
 
 ---
 
-## 5. Repository Structure
+## Build & Run Locally
+
+### Edge Inference Only (No PyTorch)
+
+Uses the versioned `256 KB` ONNX artifact directly:
+
+```bash
+pip install -e .
+orderguard inspect path/to/recording.mat
+```
+
+### Full Local Rebuild From Raw Data
+
+Downloads the 60 uOttawa `.mat` recordings (`~730 MB`, SHA-256 verified) from Mendeley Data and regenerates every artifact, benchmark metric, replay trace, and figure:
+
+```bash
+pip install -e ".[train,dev]"
+make rebuild   # runs: orderguard download -> train -> benchmark -> replay -> plots
+make check     # runs: ruff check, ruff format --check, mypy --strict, pytest --cov
+```
+
+Python API:
+
+```python
+from pathlib import Path
+from orderguard.data import load_mat_file
+from orderguard.edge import EdgeClassifier
+from orderguard.encoder import audit_sensors, decode_encoder
+from orderguard.features import extract_multiband_cnn_input
+from orderguard.order_tracking import multiband_order_envelopes, slice_order_windows
+
+rec = load_mat_file(Path("data/uottawa/I-A-1.mat"))
+track = decode_encoder(rec.encoder, rec.fs_hz)
+assert audit_sensors(rec.vibration, track).ok
+_, order_sigs = multiband_order_envelopes(rec.vibration, rec.fs_hz, track)
+band_wins = [slice_order_windows(s)[0][0] for s in order_sigs]
+probs = EdgeClassifier(Path("artifacts/orderguard.onnx")).predict_proba(
+    extract_multiband_cnn_input(band_wins)
+)
+```
+
+---
+
+## Repository Layout & Notes
 
 ```text
 shm-bearing-dataset/
-├── bearingscope/            # Python package: physics, Hilbert features, MLP, grouped eval, CLI
-├── tests/                   # Fast unit, integration, CLI & golden-parity tests (no .mat needed)
-├── web/                     # Zero-backend React 19 + TypeScript live diagnostics studio
-│   ├── src/lib/             # Bit-exact TS port (radix-2 FFT, envelope, MLP, decision + parity tests)
-│   └── public/data/         # Exported 14 KB model.json + unseen 3 HP demo.i16 stream
-├── artifacts/               # Reproducible metrics.json and exported model.json
-├── assets/                  # Live demo GIF, 3-step physics visual, confusion matrices
-├── docs/                    # Architecture overview and ADRs (0001–0003)
-└── .github/workflows/       # CI (Python 3.11–3.13 + Node 22) and automatic GitHub Pages deploy
+├── orderguard/            # Core library: kinematics, data, encoder, COT, features, ONNX edge, FSM, CLI
+├── tests/                 # Synthetic chirp, COT, ONNX parity, FSM & split-leakage unit tests (no .mat needed)
+├── artifacts/             # Versioned ONNX model (256 KB), model metadata, benchmark.json, replay_trace.json
+├── assets/                # Figures generated from the real uOttawa recordings
+├── .github/workflows/ci.yml
+├── Makefile
+└── pyproject.toml         # data/ (~730 MB raw .mat downloads) is gitignored and fetched via `orderguard download`
 ```
 
----
+- **Why multi-band envelopes instead of single-band CPW:** A single `1–40 kHz` cepstrum pre-whitened filter flattened weak outer-race housing resonances (`O-A-1` BPFO SNR fell from `2.76×` in `0.5–5 kHz` to `1.25×` under CPW), and per-window z-scoring amplified noise floor fluctuations in healthy windows. Separating four carrier bands and scaling by median noise floor fixed healthy↔outer confusion.
+- **Why raw broadband FFT was excluded as a baseline:** In uOttawa each physical bearing stayed mounted across all four speed profiles, allowing raw `0–40 kHz` FFT bands to memorize the static test-rig transfer function (`94.9%` across `A/B ↔ C/D`) rather than defect kinematics.
+- **Ball fault recall (`81.9%`):** Rolling-element defects move in and out of the radial load zone at cage speed (`FTF`), making impulses intermittent inside `16`-revolution windows.
 
-## 6. Verification & Quality Gates
-
-```bash
-make check
-```
-
-| Layer | Tooling | Gate |
-|---|---|---|
-| Python lint & format | `ruff check` + `ruff format --check` | Zero warnings |
-| Python typing | `mypy --strict` | Zero errors across all source & test files |
-| Python tests | `pytest --cov=bearingscope` | Unit, grouped CV, CLI & golden-fixture parity |
-| Web studio | `tsc --noEmit`, `biome check`, `vitest`, `vite build` | Zero warnings, `< 1e-6` Python↔TS parity, production bundle verified |
-| Live deployment | GitHub Actions → GitHub Pages (`deploy.yml`) | Auto-deploys `web/dist` on every push to `main` |
-
----
-
-## References
-
-- **Dataset:** Case Western Reserve University (CWRU) Bearing Data Center — 12 kHz Drive-End & Normal Baseline SKF 6205-2RS JEM recordings ([engineering.case.edu/bearingdatacenter](https://engineering.case.edu/bearingdatacenter)).
-- **Method:** Robert B. Randall & Jérôme Antoni, *"Rolling element bearing diagnostics—A tutorial,"* Mechanical Systems and Signal Processing (2011).
-
-MIT License — see [LICENSE](LICENSE).
+**References:** Huang & Baddour (*Data in Brief*, 2018; [Mendeley Data](https://data.mendeley.com/datasets/v43hmbwxpm/2)) · Randall & Antoni (*MSSP*, 2011) · Borghesani et al. (*MSSP*, 2013) · Fyfe & Munck (*MSSP*, 1997) · [MIT License](LICENSE)
