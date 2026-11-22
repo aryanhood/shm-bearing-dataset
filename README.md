@@ -1,125 +1,143 @@
-<h1 align="center">vibcheck</h1>
+# BearingBench: Physics-Informed Order-Domain Inductive Bias, Matryoshka Compression, and Conformal Uncertainty Under Non-Stationary Sensor Shift
 
-<p align="center">
-  Point any phone, microphone, or cheap accelerometer at a spinning machine — get a plain-English health report in seconds. No AI/ML background, no cloud account, no training required.
-</p>
+> **[Technical Report (PDF)](paper/technical_report.pdf)** · **[LaTeX Source](paper/technical_report.tex)** · **[BibTeX](paper/references.bib)** · **[Reproducible Results JSON](artifacts/benchmark_results.json)**
 
-<p align="center">
-  <a href="https://github.com/aryanhood/shm-bearing-dataset/actions/workflows/ci.yml"><img src="https://github.com/aryanhood/shm-bearing-dataset/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-2563eb" alt="Python 3.11-3.13">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-059669" alt="MIT License"></a>
-</p>
+**BearingBench** evaluates physics-informed time-series representations, width- and precision-elastic neural inference (`MatryoshkaOrderCNN` + static QDQ INT8 ONNX), and conformal uncertainty quantification across **100 real laboratory recordings** (40 CWRU 12 kHz recordings / 2,331 windows; 60 uOttawa 200 kHz non-stationary speed-varying recordings / 699 windows) over **5 random seeds** (`{7, 19, 42, 73, 101}`) under strictly leak-free recording-grouped and cross-regime protocols.
+
+![BearingBench Architecture Pipeline](assets/fig1_pipeline_architecture.svg)
 
 ---
 
-## Output First
+## 1. Key Findings & Contributions
 
-Run `vibcheck` on any `.csv` (smartphone **Phyphox**, ESP32/Arduino MEMS sensor, DAQ), `.wav` (phone or USB mic near a fan, motor, pump, or CNC spindle), or `.mat` recording. It prints a plain-English verdict and optionally writes a shareable single-file HTML report (`--report report.html`):
-
-```text
-====================================================================
-  VIBCHECK HEALTH REPORT   [INSPECT SOON]
-====================================================================
-  File       : motor_inner_fault.csv (accel_g, 12000 Hz, 1.50 s)
-  Summary    : Fault signature or elevated vibration detected — schedule a physical inspection soon.
-
-  Key Measurements:
-    Overall RMS     : 0.2978 g   (Peak: 1.5332)
-    Impulsiveness   : kurtosis 5.60  |  crest factor 5.15
-    ISO 20816-3     : 0.22 mm/s RMS (Zone A, group2_rigid)
-    Baseline Drift  : 54/100 vs '2 HP Shop Motor' (RMS 4.3x)
-    Operating Point : 1750 RPM (29.2 Hz) | Bearing: 6205
-
-  What We Found:
-    - ISO 20816-3 vibration velocity is 0.22 mm/s RMS (Zone A — Good).
-    - Mild impulsive spikes detected (kurtosis 5.6 vs ~3.0 normal baseline).
-    - Drifted from '2 HP Shop Motor' baseline (score 54/100): vibration energy is 4.3x higher
-      than healthy baseline; sharper repeating shocks (kurtosis 5.6 vs 2.8); noticeable shift
-      in frequency content.
-    - Inner race wear (BPFI) matches a repeating knock at 157.9 Hz (82.3x above local noise floor).
-
-  What To Check Next:
-    * Inspect 6205 bearing lubrication, check for roughness by hand-spinning, and plan a replacement.
-====================================================================
-```
-
-![Diagnostic plots embedded in vibcheck HTML report](assets/report_preview.png)
-
-### Real-World Validation (Zero Fault Labels)
-
-To verify that `vibcheck` catches real wear without any ML training data, we learned a baseline from **one single healthy recording** (`97.mat`, 0 HP) of the Case Western Reserve University (CWRU) motor bearing dataset and scored all **40 real motor recordings** across 0–3 HP loads and 3 defect sizes:
-
-![Zero-label drift score vs ISO 20816-3 velocity across 40 CWRU recordings](assets/cwru_validation.png)
-
-- **40 / 40 clean separation:** every healthy run scored `0–16 / 100`, while every inner-race (`52–90`), outer-race (`49–91`), and ball (`45–62`) fault scored above `44 / 100`.
-- **Why envelope + baseline drift matters:** all 40 recordings still sit inside ISO 20816-3 Zone A (`< 1.4 mm/s`) because early bearing spalls radiate at `1.5–5.5 kHz`, above ISO's `10–1,000 Hz` velocity band. Combining ISO velocity with high-frequency envelope demodulation catches both gross balance/alignment problems and early bearing wear.
+1. **Order-Domain Physics Outperforms Time-Domain Learning Across Unseen Speed Regimes:** On uOttawa `unseen_speed_profile` (train monotonic ramps `A/B` &harr; test reversing profiles `C/D`), order-domain 1D-CNN reaches **`96.02% ± 0.52%`** vs. **`88.41% ± 1.19%`** for time-domain envelope CNN (`+7.61 pp`, 95% pooled bootstrap CI `[+6.61, +8.58] pp`, exact McNemar `305 vs. 39`, `p < 1e-10`). Extracting 4-band structural Hilbert envelopes *before* angular resampling (**Envelope-First COT**) outperforms Order-First resampling (`92.67%` vs. `91.10%`, `+1.57 pp`, `p = 0.000128`).
+2. **Kilobyte-Scale Elastic INT8 Deployment (Zero PyTorch Runtime):** Training a single `MatryoshkaOrderCNN` across nested channel widths `d in {8, 16, 32, 64, 128}` and applying physical prefix slicing + proper-train-calibrated static QDQ INT8 quantization shrinks the `d=128` ONNX model `3.51x` to **`35.77 KB`** at **`92.93% ± 0.60%`** accuracy (`0.1205 ms` p50 CPU latency, `1.62e-5` max Torch/ONNX logit diff), while `d=16` INT8 achieves **`91.96% ± 1.56%`** in **`20.78 KB`** and `d=8` INT8 reaches **`88.04% ± 7.88%`** in **`19.71 KB`**.
+3. **Zero-Label Carrier Drift vs. ISO 20816-3:** Standard ISO 20816-3 velocity RMS (`10–1000 Hz`) masks **36/36** CWRU faults inside Zone `A` (`40/40`), whereas our zero-label Median/MAD carrier-band drift score yields **`1.0000` AUROC / `1.0000` AUPRC** on CWRU and **`0.9097` AUROC / `0.9739` AUPRC** on unseen uOttawa speed profiles `C/D`.
+4. **Uncertainty Shift & Online Conformal Recovery:** Under non-stationary shift, raw single-model ECE doubles (`2.63% -> 5.10%`) and ID-tuned out-of-fold Temperature Scaling worsens OOD ECE (`6.17%`), while 5-seed ensembling halves OOD ECE to **`3.02%`**. Online Adaptive Conformal Inference (ACI) sustains **`93.93%`** (`unseen_speed_profile`) and **`96.25%`** (`unseen_trial`) coverage at 90% target and recovers **`+22.88 pp`** coverage (`50.16% -> 73.04%`) when unseen CWRU spall diameters break exchangeability.
 
 ---
 
-## Try It In 10 Seconds
+## 2. Physics-Informed Computed Order Tracking
 
-Only `numpy`, `scipy`, and `matplotlib` are required — no PyTorch, no GPU, no web server. Bundled real motor samples live in `examples/`:
+![Time-Domain Envelope FFT vs Envelope-First Order-Domain SES](assets/fig2_physics_order_vs_time.png)
+
+When shaft speed accelerates and decelerates continuously (uOttawa `O-C-1`, `840 <-> 1300 RPM`), bearing impact frequencies stretch across Hz bins. Bandpass-filtering into four structural resonance carriers (`0.5–5`, `5–15`, `15–35`, `35–65 kHz`) *before* Hilbert squaring and cubic/PCHIP shaft-angle resampling locks spectral peaks cleanly onto kinematic shaft orders (`k x BPFO`).
+
+---
+
+## 3. Dual-Dataset Leak-Free Benchmark (`5 Seeds`, `Mean ± Std`)
+
+![Dual-Dataset 5-Seed Benchmark Across CWRU and uOttawa](assets/fig3_dual_dataset_benchmark.png)
+
+### CWRU (`40` Recordings, `2,331` Windows, `4` Classes)
+
+| Model / Representation | `random_window` (Leakage) | `unseen_load` (0–3 HP OOD) | `unseen_fault_size` (7/14/21 mil OOD) |
+|---|---:|---:|---:|
+| Gain-Sensitive 16-d MLP | `99.98% ± 0.02%` | `99.90% ± 0.04%` | `59.29% ± 2.90%` *(14 mil: 33.40%)* |
+| Gain-Invariant 27-d RF | `96.20% ± 0.12%` | `94.83% ± 0.10%` | `42.32% ± 0.83%` |
+| Envelope 1D-CNN | `99.00% ± 0.08%` | `95.44% ± 0.56%` | `59.63% ± 1.22%` |
+| MRL Envelope 1D-CNN (`d=128`) | `98.14% ± 0.12%` | `95.29% ± 0.15%` | `47.72% ± 2.47%` |
+
+### uOttawa (`60` Recordings, `699` Windows, `5` Classes)
+
+| Model / Representation | `random_window` | `unseen_trial` (Group OOD) | `unseen_speed_profile` (A/B &harr; C/D OOD) | Ball Fault Recall |
+|---|---:|---:|---:|---:|
+| Time-Envelope RF | `91.59% ± 0.50%` | `91.22% ± 0.45%` | `86.04% ± 0.55%` | `63.62%` |
+| Time-Envelope 1D-CNN | `94.28% ± 0.43%` | `93.05% ± 0.95%` | `88.41% ± 1.19%` | `77.97%` |
+| Order-Physics RF (27-d) | `97.42% ± 0.10%` | `96.97% ± 0.12%` | `93.25% ± 0.16%` | `75.51%` |
+| **Order 1D-CNN** | **`99.00% ± 0.27%`** | **`98.46% ± 0.21%`** | **`96.02% ± 0.52%`** | **`84.49%`** |
+| Order-MRL 1D-CNN (`d=128`) | `96.60% ± 0.59%` | `95.36% ± 0.66%` | `92.67% ± 0.83%` | `82.61%` |
+
+### Paired Statistical Significance (`unseen_speed_profile`, Pooled 5-Seed Windows)
+
+| Comparison | Mean Accuracy Delta | 95% Bootstrap CI | Exact McNemar (`n_A / n_B`) | Two-Sided p-Value |
+|---|---:|---:|---:|---:|
+| `Order-CNN` vs. `Time-Env CNN` | **`+7.61 pp`** | `[+6.61, +8.58] pp` | `305 / 39` | **`0.0`** (`< 1e-10`) |
+| `Envelope-First` vs. `Order-First COT` | **`+1.57 pp`** | `[+0.80, +2.35] pp` | `128 / 73` | **`0.000128`** |
+| `Order-MRL CNN` vs. `Order-Physics RF` | `-0.57 pp` | `[-1.40, +0.31] pp` | `110 / 130` | `0.219951` |
+
+---
+
+## 4. Factorial Ablations & Matryoshka ONNX INT8 Pareto Frontier
+
+![Factorial Ablations and Matryoshka ONNX INT8 Pareto Frontier](assets/fig4_ablations_and_mrl_pareto.png)
+
+| Variant / Width (`unseen_speed_profile`, 5 seeds) | FP32 Acc (`±SD`) | INT8 Acc (`±SD`) | FP32 -> INT8 Size | INT8 p50 Latency | INT8 OOD ECE |
+|---|---:|---:|---:|---:|---:|
+| Sliced Matryoshka `d = 8` | `88.07% ± 7.66%` | **`88.04% ± 7.88%`** | `62.69 -> 19.71 KB` | `0.1045 ms` | `0.1802` |
+| Sliced Matryoshka `d = 16` | `92.07% ± 1.26%` | `91.96% ± 1.56%` | `66.88 -> 20.78 KB` | `0.1908 ms` | `0.0525` |
+| Sliced Matryoshka `d = 32` | `92.56% ± 0.74%` | `92.62% ± 0.55%` | `75.26 -> 22.92 KB` | `0.2238 ms` | **`0.0265`** |
+| Sliced Matryoshka `d = 64` | `92.65% ± 0.73%` | `92.82% ± 0.66%` | `92.01 -> 27.21 KB` | **`0.0763 ms`** | `0.0425` |
+| Sliced Matryoshka `d = 128` | `92.67% ± 0.83%` | **`92.93% ± 0.60%`** | `125.52 -> 35.77 KB` | `0.1205 ms` | `0.0514` |
+
+Single-factor ablation highlights on `unseen_speed_profile`:
+- **Single-Band Drops:** `0.5–5 kHz` (`90.10%`), `5–15 kHz` (`81.14%`), `15–35 kHz` (`65.49%`) vs. 4-band fusion (`92.67%`).
+- **Cepstrum Pre-Whitening:** `92.33% ± 0.51%` (slightly below un-whitened `92.67%`).
+- **Tachometer Resolution & Edge Jitter:** Downsampling from `1024 PPR` to `256 / 64 / 32 PPR` or injecting `2%` edge timing jitter maintains `92.64%–92.70%` because `32 PPR` still supplies 64 smoothed edges per 2-revolution window.
+
+---
+
+## 5. Calibration Under Shift, Conformal Prediction & Closed-Loop Edge Replay
+
+![Calibration Under Shift and Conformal Rolling Coverage](assets/fig5_calibration_and_conformal.png)
+
+| Protocol | Raw Single ECE | OOF TempScale ECE | 5-Seed Ensemble ECE | Split APS Coverage | Online ACI Coverage | ACI Set Size |
+|---|---:|---:|---:|---:|---:|---:|
+| uOttawa `random_window` | `2.63%` | `1.99%` | `1.79%` | `97.38%` | `97.04%` | `1.011` |
+| uOttawa `unseen_trial` | `3.04%` | `2.69%` | `1.98%` | `97.05%` | **`96.25%`** | `1.024` |
+| uOttawa `unseen_speed_profile` | `5.10%` | `6.17%` | **`3.02%`** | `93.53%` | **`93.93%`** | `1.070` |
+| CWRU `unseen_load` | `3.13%` | `2.38%` | **`2.05%`** | `96.88%` | `95.71%` | `1.016` |
+| CWRU `unseen_fault_size` | `48.88%` | `47.05%` | `43.96%` | `50.16%` | **`73.04%`** | `1.836` |
+
+![Trial-3 Zero-PyTorch INT8 Closed-Loop Replay](assets/fig6_closed_loop_supervisor.png)
+
+On continuous Trial-3 replay (`H-C-3` healthy reversing `967 -> 1206 RPM` followed by `C-C-3` combined fault), the `35.77 KB` INT8 `EdgeClassifier` + `SupervisoryController` produces **`0` false derates** over all healthy windows and triggers slew-limited **`SAFE_STOP`** at `t = 12.425 s`.
+
+---
+
+## 6. Negative Results & Failure Modes
+
+1. **Unseen Fault Severity Wall (CWRU `7/14/21 mil`):** Held-out spall diameters drop supervised accuracy to `47.72%–59.63%` (`14 mil` MLP fold: `33.40%`). Changes in spall geometry alter structural modulation bandwidth rather than signal gain, defeating both gain-invariant normalization and MRL compression.
+2. **Split Conformal Breakdown & Finite-Step ACI Lag:** Split APS violates exchangeability under CWRU severity shift (`50.16%` coverage); Online ACI improves coverage by `+22.88 pp` (`73.04%`), yet finite-horizon $\gamma = 0.05$ step updates lag abrupt domain shifts below the `90%` nominal target.
+3. **ID-Tuned Temperature Scaling Under OOD Shift:** Proper-train OOF temperature scaling slightly *worsens* uOttawa unseen-speed ECE (`5.10% -> 6.17%`) and NLL (`0.4472 -> 0.7656`), confirming prior shift-calibration findings relative to 5-seed ensembles (`3.02%` ECE).
+4. **Matryoshka Width Cliff at `d=8` & CPW Sideband Attenuation:** `d=8` shows high cross-seed variance (`±7.88%`) and `0.1802` ECE relative to `d >= 16` (`20.78 KB`), while cepstrum pre-whitening slightly attenuates weak ball-defect harmonics (`80.44%` vs. `82.61%` recall).
+
+---
+
+## 7. One-Command Reproducibility & Verification
 
 ```bash
+pip install -e ".[ml,dev]"
+
+# Reproduce all 100 .mat experiments, ONNX INT8 artifacts, and figures
+python scripts/reproduce.py
+
+# Verify README, LaTeX, and HTML metrics match artifacts/benchmark_results.json verbatim
+python scripts/verify_report_numbers.py
+
+# Lint, format check, strict type check, and unit/invariant test suite
+ruff check .
+ruff format --check .
+mypy
+pytest tests --cov=bearingbench
+
+# Zero-PyTorch / Zero-Scikit-Learn ONNX edge runtime check
 pip install -e .
-
-# 1. Quick health check + standalone HTML report
-vibcheck check examples/motor_inner_fault.csv --rpm 1750 --bearing 6205 --report report.html
-
-# 2. Learn YOUR machine's healthy normal (works on any fan, pump, motor, or robot joint)
-vibcheck baseline examples/motor_healthy.csv -o my_motor.json --name "2 HP Shop Motor"
-vibcheck check examples/motor_inner_fault.csv --baseline my_motor.json --rpm 1750 --bearing 6205
-
-# 3. Compare before vs after a repair, grease job, or bearing swap
-vibcheck compare examples/motor_inner_fault.csv examples/motor_healthy.csv --report diff.html
-
-# 4. Look up fault frequencies for common bearings (608, 6203, 6204, 6205, 6206, 6305, ER16K)
-vibcheck bearings --rpm 1750
+python -c "from pathlib import Path; import numpy as np; from bearingbench.edge.onnx_edge import EdgeClassifier; print(EdgeClassifier(Path('artifacts/order_mrl_int8.onnx'), Path('artifacts/order_mrl_meta.json')).predict_proba(np.zeros((1,4,400), np.float32)))"
 ```
-
-### Using Your Own Phone or Sensor
-
-- **Smartphone (free Phyphox app):** Record *Acceleration without g*, export `.csv`, and run `vibcheck check export.csv`. Sampling rate and `m/s²` units are detected automatically.
-- **Phone or USB microphone:** Record 5–10 seconds of `.wav` audio near the bearing housing and run `vibcheck check motor.wav --rpm 1800 --bearing 608`.
-- **ESP32 / Arduino / DAQ:** Save a 1-column or `time_s,accel_g` `.csv` and pass `--fs <Hz>` if there is no time column.
 
 ---
 
-## How It Works
+## Citation
 
-```mermaid
-flowchart LR
-    A["CSV / WAV / MAT<br/>(Phone, Mic, Sensor)"] --> B["Signal Audit<br/>(Clipping, Dropout, Rate)"]
-    B --> C["ISO 20816-3 Velocity<br/>(10–1000 Hz mm/s RMS)"]
-    B --> D["Adaptive Envelope Spectrum<br/>(BPFI / BPFO / BSF + 1x/2x RPM)"]
-    B --> E["Optional Baseline Drift<br/>(Robust Median/MAD Score 0–100)"]
-    C & D & E --> F["Plain-English Verdict<br/>Terminal + Single-File HTML"]
+```bibtex
+@techreport{hood2026bearingbench,
+  author      = {Aryan Hood},
+  title       = {BearingBench: Physics-Informed Order-Domain Inductive Bias, Matryoshka Compression, and Conformal Uncertainty Under Non-Stationary Sensor Shift},
+  institution = {Independent Systems Research},
+  year        = {2026},
+  url         = {https://github.com/aryanhood/shm-bearing-dataset/blob/main/paper/technical_report.pdf}
+}
 ```
 
-- **Universal loader ([`io.py`](vibcheck/io.py)):** Auto-detects delimiters, Phyphox headers, sampling rates, units (`g`, `m/s²`, or uncalibrated `audio`), and `.mat` channels.
-- **Physics & standards ([`diagnostics.py`](vibcheck/diagnostics.py), [`bearings.py`](vibcheck/bearings.py)):** Frequency-domain integration to ISO 20816-3 `mm/s RMS` (skipped automatically on uncalibrated audio), Welch PSD for `1×` unbalance / `2×` misalignment, and kurtosis-selected Hilbert squared-envelope demodulation matched against built-in bearing geometries.
-- **Personal baseline ([`baseline.py`](vibcheck/baseline.py)):** Fits a `~2 KB` median/MAD fingerprint from one healthy recording so anyone can monitor drift on any machine without knowing bearing part numbers.
-- **Shareable reports ([`report.py`](vibcheck/report.py), [`compare.py`](vibcheck/compare.py)):** Emits plain-English findings, maintenance checklists, and self-contained HTML reports with embedded plots that open offline in any browser.
-
----
-
-## Repository Layout
-
-```text
-shm-bearing-dataset/
-├── vibcheck/              # Core library: bearings, io, diagnostics, baseline, compare, report, cli
-├── examples/              # 3 small real motor sample clips (CSV + WAV) ready to run immediately
-├── tests/                 # Fast unit & CLI integration tests
-├── assets/                # Diagnostic report preview & 40-file CWRU zero-label validation plot
-├── .github/workflows/ci.yml
-├── Makefile
-└── pyproject.toml
-```
-
-## References
-
-- **ISO 20816-3:2022** — *Mechanical vibration — Measurement and evaluation of machine vibration (Industrial machines).*
-- **R. B. Randall & J. Antoni**, *"Rolling element bearing diagnostics—A tutorial,"* *Mechanical Systems and Signal Processing*, 25(2):485–520, 2011.
-- **Case Western Reserve University (CWRU) Bearing Data Center** — 12 kHz Drive-End SKF 6205-2RS motor vibration benchmark.
-
-MIT License — see [LICENSE](LICENSE).
+MIT License

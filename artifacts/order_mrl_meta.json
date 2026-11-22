@@ -1,0 +1,13 @@
+{
+  "classes": [
+    "healthy",
+    "inner",
+    "outer",
+    "ball",
+    "combined"
+  ],
+  "in_channels": 4,
+  "n_bins": 400,
+  "onnx_bytes": 128530,
+  "params": 25005
+}

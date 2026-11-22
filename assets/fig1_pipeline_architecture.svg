@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 265" width="980" height="265">
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .box { fill: #ffffff; stroke: #334155; stroke-width: 1.6; rx: 8; }
+      .accent1 { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 1.8; rx: 8; }
+      .accent2 { fill: #ecfdf5; stroke: #047857; stroke-width: 1.8; rx: 8; }
+      .accent3 { fill: #fffbeb; stroke: #b45309; stroke-width: 1.8; rx: 8; }
+      .title {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 12.5px; font-weight: 700; fill: #0f172a;
+      }
+      .sub { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10.5px; fill: #334155; }
+      .hdr {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 13.5px; font-weight: 700; fill: #0f172a;
+      }
+      .arrow { stroke: #475569; stroke-width: 1.8; fill: none; marker-end: url(#ah); }
+    </style>
+    <marker id="ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="980" height="265" class="bg"/>
+  <text x="24" y="28" class="hdr">
+    BearingBench: Physics-Informed COT + Matryoshka 1D-CNN + Conformal INT8 Supervisor
+  </text>
+
+  <rect x="24" y="52" width="170" height="175" class="box"/>
+  <text x="109" y="78" text-anchor="middle" class="title">1. Multi-Sensor Input</text>
+  <text x="109" y="103" text-anchor="middle" class="sub">200 kHz Accelerometer</text>
+  <text x="109" y="121" text-anchor="middle" class="sub">+ 1024-PPR Encoder</text>
+  <line x1="38" y1="138" x2="180" y2="138" stroke="#cbd5e1"/>
+  <text x="109" y="158" text-anchor="middle" class="sub">Schmitt Trigger +</text>
+  <text x="109" y="175" text-anchor="middle" class="sub">Sub-Sample Edge Interp.</text>
+  <text x="109" y="195" text-anchor="middle" class="sub">Sensor Health Audit</text>
+  <text x="109" y="213" text-anchor="middle" class="sub">(Clipping / Dropout)</text>
+
+  <path d="M194 140 L216 140" class="arrow"/>
+
+  <rect x="220" y="52" width="215" height="175" class="accent1"/>
+  <text x="327" y="78" text-anchor="middle" class="title">2. Physics Inductive Bias</text>
+  <text x="327" y="103" text-anchor="middle" class="sub">4 Structural Carrier Bands</text>
+  <text x="327" y="121" text-anchor="middle" class="sub">(0.5-5, 5-15, 15-35, 35-65 kHz)</text>
+  <line x1="234" y1="138" x2="420" y2="138" stroke="#bfdbfe"/>
+  <text x="327" y="158" text-anchor="middle" class="sub">Time-Domain Hilbert Sq. Env</text>
+  <text x="327" y="176" text-anchor="middle" class="sub">-&gt; PCHIP/Cubic Angle COT</text>
+  <text x="327" y="196" text-anchor="middle" class="sub">-&gt; Gain-Invariant Order-SES</text>
+  <text x="327" y="214" text-anchor="middle" class="sub">Tensor Shape: (4, 400)</text>
+
+  <path d="M435 140 L457 140" class="arrow"/>
+
+  <rect x="461" y="52" width="235" height="175" class="accent2"/>
+  <text x="578" y="78" text-anchor="middle" class="title">3. Matryoshka Edge Backbone</text>
+  <text x="578" y="103" text-anchor="middle" class="sub">3-Block 1D-CNN (~24.8K params)</text>
+  <text x="578" y="121" text-anchor="middle" class="sub">Nested D in {8, 16, 32, 64, 128}</text>
+  <line x1="475" y1="138" x2="682" y2="138" stroke="#a7f3d0"/>
+  <text x="578" y="158" text-anchor="middle" class="sub">Elastic Prefix Slicing</text>
+  <text x="578" y="176" text-anchor="middle" class="sub">Static QDQ INT8 ONNX Export</text>
+  <text x="578" y="196" text-anchor="middle" class="sub">Zero-PyTorch CPU Runtime</text>
+  <text x="578" y="214" text-anchor="middle" class="sub">(~36-125 KB, Sub-ms Latency)</text>
+
+  <path d="M696 140 L718 140" class="arrow"/>
+
+  <rect x="722" y="52" width="234" height="175" class="accent3"/>
+  <text x="839" y="78" text-anchor="middle" class="title">4. Calibrated Conformal Guard</text>
+  <text x="839" y="103" text-anchor="middle" class="sub">OOF Temp. Scaling + Ensemble</text>
+  <text x="839" y="121" text-anchor="middle" class="sub">Split APS / Online ACI (90% Target)</text>
+  <line x1="736" y1="138" x2="942" y2="138" stroke="#fde68a"/>
+  <text x="839" y="158" text-anchor="middle" class="sub">Ambiguity Set |C(x)| &gt; 1 Trigger</text>
+  <text x="839" y="176" text-anchor="middle" class="sub">3-of-4 Hysteresis State Machine</text>
+  <text x="839" y="196" text-anchor="middle" class="sub">NOMINAL -&gt; DERATE -&gt; SAFE_STOP</text>
+  <text x="839" y="214" text-anchor="middle" class="sub">Slew-Limited Torque / Velocity</text>
+</svg>

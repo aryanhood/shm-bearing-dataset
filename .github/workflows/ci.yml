@@ -28,8 +28,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install package and dev tools
-        run: pip install -e ".[dev]"
+      - name: Install PyTorch CPU and package
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple torch
+          pip install -e ".[ml,dev]"
 
       - name: Lint and format
         run: |
@@ -39,8 +41,37 @@ jobs:
       - name: Type check (mypy --strict)
         run: mypy
 
-      - name: Tests and coverage
-        run: pytest --cov=vibcheck
+      - name: Run unit & invariant tests
+        run: pytest --cov=bearingbench
 
-      - name: CLI smoke check on bundled example
-        run: vibcheck check examples/motor_inner_fault.csv --rpm 1750 --bearing 6205 --report /tmp/vibcheck_smoke.html
+      - name: Verify report & README metric consistency
+        run: python scripts/verify_report_numbers.py
+
+  edge-runtime:
+    name: Edge Runtime (Zero-PyTorch ONNX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install runtime-only package
+        run: pip install -e .
+
+      - name: Verify FP32 & INT8 ONNX inference without PyTorch
+        run: |
+          python -c "
+          from pathlib import Path
+          import numpy as np
+          from bearingbench.edge.onnx_edge import EdgeClassifier
+          for model_file in ['order_mrl_fp32.onnx', 'order_mrl_int8.onnx']:
+              path = Path('artifacts') / model_file
+              e = EdgeClassifier(path, Path('artifacts/order_mrl_meta.json'))
+              p = e.predict_proba(np.zeros((1, 4, 400), dtype=np.float32))
+              assert p.shape == (1, 5)
+              assert abs(float(p.sum()) - 1.0) < 1e-5
+              print(model_file, 'ok:', p.round(4))
+          "

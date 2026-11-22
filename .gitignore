@@ -11,7 +11,7 @@ htmlcov/
 dist/
 build/
 
-# Raw datasets & downloaded .mat / cache files
+# Raw datasets & downloaded .mat / derived feature caches
 data/
 *.part
 

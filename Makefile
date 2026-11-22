@@ -1,7 +1,7 @@
-.PHONY: install check lint typecheck test demo
+.PHONY: install lint typecheck test reproduce verify-numbers check
 
 install:
-	pip install -e ".[dev]"
+	pip install -e ".[ml,dev]"
 
 lint:
 	ruff check .
@@ -11,9 +11,12 @@ typecheck:
 	mypy
 
 test:
-	pytest --cov=vibcheck
+	pytest --cov=bearingbench
 
-check: lint typecheck test
+reproduce:
+	python scripts/reproduce.py
 
-demo:
-	vibcheck check examples/motor_inner_fault.csv --rpm 1750 --bearing 6205 --report report.html
+verify-numbers:
+	python scripts/verify_report_numbers.py
+
+check: lint typecheck test verify-numbers

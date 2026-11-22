@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>BearingBench: Physics-Informed Order-Domain Inductive Bias, Matryoshka Compression, and Conformal Uncertainty</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 0.52in 0.62in 0.54in 0.62in;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: 9.4pt;
+      line-height: 1.38;
+      color: #111827;
+      margin: 0;
+      padding: 0;
+      max-width: 100%;
+    }
+    header.paper-header {
+      text-align: center;
+      border-bottom: 1.5px solid #1e293b;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    h1.paper-title {
+      font-size: 15.2pt;
+      line-height: 1.22;
+      margin: 0 0 6px 0;
+      color: #0f172a;
+    }
+    .authors {
+      font-size: 10pt;
+      color: #334155;
+      margin: 0;
+    }
+    .repo-url {
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 8.6pt;
+      color: #1d4ed8;
+    }
+    .abstract-box {
+      background: #f8fafc;
+      border-left: 3px solid #1d4ed8;
+      padding: 9px 12px;
+      margin: 10px 0 14px 0;
+      font-size: 9.2pt;
+    }
+    .abstract-box strong { color: #0f172a; }
+    h2 {
+      font-size: 11.4pt;
+      color: #0f172a;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 2px;
+      margin: 14px 0 6px 0;
+      break-after: avoid;
+    }
+    h3 {
+      font-size: 10pt;
+      color: #1e293b;
+      margin: 10px 0 4px 0;
+      break-after: avoid;
+    }
+    p { margin: 0 0 7px 0; text-align: justify; }
+    ul, ol { margin: 4px 0 8px 18px; padding: 0; }
+    li { margin-bottom: 3px; }
+    code {
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 8.4pt;
+      background: #f1f5f9;
+      padding: 1px 3px;
+      border-radius: 2px;
+    }
+    .eq {
+      text-align: center;
+      margin: 8px 0;
+      font-style: italic;
+      font-size: 9.6pt;
+    }
+    figure {
+      margin: 10px 0 12px 0;
+      padding: 6px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      break-inside: avoid;
+      text-align: center;
+    }
+    figure img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    figcaption {
+      font-size: 8.4pt;
+      color: #334155;
+      margin-top: 5px;
+      text-align: left;
+      line-height: 1.32;
+    }
+    .table-wrap {
+      margin: 10px 0 12px 0;
+      break-inside: avoid;
+    }
+    .table-cap {
+      font-size: 8.8pt;
+      font-weight: bold;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.4pt;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      padding: 4px 6px;
+      text-align: right;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) {
+      text-align: left;
+    }
+    thead th {
+      border-top: 1.5px solid #0f172a;
+      border-bottom: 1px solid #0f172a;
+      background: #f8fafc;
+      font-weight: bold;
+      color: #0f172a;
+    }
+    tbody tr:last-child td {
+      border-bottom: 1.5px solid #0f172a;
+    }
+    tr.mid-rule td {
+      border-top: 1px solid #94a3b8;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .refs {
+      font-size: 8.2pt;
+      line-height: 1.32;
+    }
+    .refs li { margin-bottom: 3px; }
+  </style>
+</head>
+<body>
+  <header class="paper-header">
+    <h1 class="paper-title">BearingBench: Physics-Informed Order-Domain Inductive Bias, Matryoshka Compression, and Conformal Uncertainty Under Non-Stationary Sensor Shift</h1>
+    <p class="authors">Aryan Hood &nbsp;&middot;&nbsp; <span class="repo-url">https://github.com/aryanhood/shm-bearing-dataset</span></p>
+  </header>
+
+  <div class="abstract-box">
+    <strong>Abstract.</strong> Real-world acoustic and vibration edge intelligence faces three coupled failure modes masked by i.i.d. random splits: amplitude gain shortcuts across installations, non-stationary spectral smearing under time-varying kinematics, and miscalibrated uncertainty under distribution shift. We present <strong>BearingBench</strong>, a leak-free, dual-dataset benchmark built over 100 real accelerometer and optical-encoder recordings (40 CWRU 12 kHz recordings yielding 2,331 windows and 60 uOttawa 200 kHz speed-varying recordings yielding 699 windows) across 5 random seeds. Combining envelope-first 4-band Hilbert Computed Order Tracking (COT), a single-training <code>MatryoshkaOrderCNN</code> (<em>d</em> &isin; {8, 16, 32, 64, 128}), static QDQ INT8 ONNX execution, leak-free out-of-fold calibration, 5-seed deep ensembles, and Online Adaptive Conformal Inference (ACI), order-domain CNNs improve uOttawa unseen speed-profile accuracy by <strong>+7.61 pp</strong> over time-domain envelope CNNs (<strong>96.02%</strong> vs. <strong>88.41%</strong>, 95% CI [+6.61, +8.58] pp, McNemar <em>p</em> &lt; 10<sup>-10</sup>), while envelope-first COT beats order-first resampling by <strong>+1.57 pp</strong> (<strong>92.67%</strong> vs. 91.10%, <em>p</em> = 0.000128). Static QDQ INT8 compresses the <em>d</em>=128 backbone 3.51&times; to <strong>35.77 KB</strong> at <strong>92.93%</strong> accuracy (0.1205 ms p50 CPU latency, zero PyTorch runtime) and preserves <strong>88.04%</strong> down to <em>d</em>=8 (<strong>19.71 KB</strong>). Under unseen CWRU spall diameters (7/14/21 mil), all supervised models drop to 47.72%&ndash;59.63%, while ID-tuned temperature scaling worsens uOttawa OOD ECE (5.10% &rarr; 6.17%), deep ensembles halve OOD ECE to <strong>3.02%</strong>, and Online ACI recovers <strong>+22.88 pp</strong> conformal coverage on CWRU severity shift (50.16% &rarr; 73.04%).
+  </div>
+
+  <h2>1. Introduction &amp; Pipeline Overview</h2>
+  <p>Edge monitoring systems for rotating machinery and predictive health sensing require calibrated predictions under kilobyte-level memory budgets when speeds and damage modes shift outside the training distribution. Standard fault-diagnosis papers often split sliding windows randomly across recordings (causing severe temporal leakage), evaluate only constant-speed regimes where spectral peaks remain stationary in Hz, or omit out-of-distribution uncertainty evaluation. BearingBench eliminates these confounds across all 100 real <code>.mat</code> recordings and evaluates every claim over five seeds {7, 19, 42, 73, 101}.</p>
+
+  <figure>
+    <img src="../assets/fig1_pipeline_architecture.svg" alt="BearingBench Pipeline Architecture" />
+    <figcaption><strong>Figure 1.</strong> End-to-end BearingBench pipeline: Schmitt-trigger encoder decoding and health audit, 4-band envelope-first Computed Order Tracking (COT), single-training Matryoshka 1D-CNN with static QDQ INT8 ONNX export, and conformal ambiguity-guarded supervisory control.</figcaption>
+  </figure>
+
+  <h2>2. Methodology</h2>
+  <h3>2.1 Envelope-First Order-Domain Inductive Bias</h3>
+  <p>When shaft speed <em>&omega;(t)</em> accelerates or reverses, fault modulation harmonics smear across Hz frequency bins. Naive <em>order-first</em> COT resamples raw vibration before bandpass filtering, shifting structural resonance bands relative to angular sampling rate. Our <em>envelope-first</em> COT instead (i) bandpass-filters in time across four structural resonance bands (0.5&ndash;5, 5&ndash;15, 15&ndash;35, 35&ndash;65 kHz), (ii) takes squared Hilbert envelopes in time, (iii) resamples onto uniform shaft-angle increments (&Delta;&theta; = 2&pi;/1024 rad) over 2-revolution segments via PCHIP/cubic interpolation, and (iv) extracts median-normalized FFT order spectra x &isin; &Ropf;<sup>4&times;400</sup>.</p>
+
+  <figure>
+    <img src="../assets/fig2_physics_order_vs_time.png" alt="Time-domain FFT vs Order-domain SES on O-C-1" />
+    <figcaption><strong>Figure 2.</strong> Real uOttawa <code>O-C-1</code> outer-race fault recording under non-stationary 840 &harr; 1300 RPM profile: time-domain FFT smears peaks across Hz bins whereas envelope-first COT locks SNR peaks cleanly onto shaft orders (<em>k &times; BPFO</em>).</figcaption>
+  </figure>
+
+  <h3>2.2 MatryoshkaOrderCNN &amp; Static QDQ INT8 Edge Inference</h3>
+  <p><code>MatryoshkaOrderCNN</code> is a lightweight 3-block 1D-CNN (~24.8K parameters, final channel width 128) trained with uniform nested cross-entropy loss across channel prefixes <em>d</em> &isin; {8, 16, 32, 64, 128}:</p>
+  <div class="eq">L<sub>MRL</sub>(x, y) = (1 / |D|) &Sigma;<sub>d &isin; D</sub> CE(W<sub>:,:d</sub> z(x)<sub>:d</sub> + b, y)</div>
+  <p><code>SlicedMatryoshkaCNN</code> physically slices the final pointwise convolution kernels and linear head down to prefix width <em>d</em> (real FLOP/parameter reduction), exports opset-18 ONNX graphs, and applies static QDQ INT8 quantization calibrated exclusively on proper-training windows. Deployment via <code>EdgeClassifier</code> runs in single-thread CPU ONNX Runtime with zero PyTorch or scikit-learn dependencies.</p>
+
+  <h3>2.3 Leak-Free Calibration, Conformal Sets &amp; Safety Supervisor</h3>
+  <p>Temperature scaling is fit using 2-fold recording-grouped out-of-fold (OOF) logits inside the training partition and benchmarked against 5-seed ensembles via ECE, Brier score, NLL, and selective risk-coverage (AURC). At target coverage 1 &minus; &alpha; = 0.90, we compare static Split APS against chronological Online ACI (&gamma; = 0.05) and integrate prediction set ambiguity (|<em>C(x)</em>| &gt; 1), severe fault hysteresis (3-of-4 windows), and hardware sensor clipping/dropout audits into <code>SupervisoryController</code>.</p>
+
+  <h2>3. Main Benchmark &amp; Zero-Label Detection</h2>
+  <p>On CWRU, standard ISO 20816-3 RMS velocity thresholds classify <strong>40/40 recordings as Zone A</strong> (masking 36/36 faults), whereas our zero-label Median/MAD carrier-band drift score reaches <strong>1.0000 AUROC / 1.0000 AUPRC</strong> on CWRU (healthy max 15.94 vs. fault min 44.50) and <strong>0.9097 AUROC / 0.9739 AUPRC</strong> on unseen uOttawa reversing profiles (C/D).</p>
+
+  <div class="table-wrap">
+    <div class="table-cap">Table 1. Supervised 5-seed accuracy (mean &plusmn; std %) across i.i.d. and leak-free out-of-distribution protocols (CWRU &amp; uOttawa).</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Dataset</th>
+          <th>Model / Representation</th>
+          <th>random_window</th>
+          <th>Unseen Load / Trial</th>
+          <th>Unseen Size / Speed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>CWRU (4-cls)</td><td>Gain-Sensitive 16-d MLP</td><td>99.98 &plusmn; 0.02%</td><td>99.90 &plusmn; 0.04%</td><td>59.29 &plusmn; 2.90%</td></tr>
+        <tr><td>CWRU (4-cls)</td><td>Gain-Invariant 27-d RF</td><td>96.20 &plusmn; 0.12%</td><td>94.83 &plusmn; 0.10%</td><td>42.32 &plusmn; 0.83%</td></tr>
+        <tr><td>CWRU (4-cls)</td><td>Env 1D-CNN</td><td>99.00 &plusmn; 0.08%</td><td>95.44 &plusmn; 0.56%</td><td>59.63 &plusmn; 1.22%</td></tr>
+        <tr><td>CWRU (4-cls)</td><td>MRL Env 1D-CNN (<em>d</em>=128)</td><td>98.14 &plusmn; 0.12%</td><td>95.29 &plusmn; 0.15%</td><td>47.72 &plusmn; 2.47%</td></tr>
+        <tr class="mid-rule"><td>uOttawa (5-cls)</td><td>Time-Env RF</td><td>91.59 &plusmn; 0.50%</td><td>91.22 &plusmn; 0.45%</td><td>86.04 &plusmn; 0.55%</td></tr>
+        <tr><td>uOttawa (5-cls)</td><td>Time-Env 1D-CNN</td><td>94.28 &plusmn; 0.43%</td><td>93.05 &plusmn; 0.95%</td><td>88.41 &plusmn; 1.19%</td></tr>
+        <tr><td>uOttawa (5-cls)</td><td>Order-Physics RF (27-d)</td><td>97.42 &plusmn; 0.10%</td><td>96.97 &plusmn; 0.12%</td><td>93.25 &plusmn; 0.16%</td></tr>
+        <tr><td>uOttawa (5-cls)</td><td><strong>Order 1D-CNN</strong></td><td><strong>99.00 &plusmn; 0.27%</strong></td><td><strong>98.46 &plusmn; 0.21%</strong></td><td><strong>96.02 &plusmn; 0.52%</strong></td></tr>
+        <tr><td>uOttawa (5-cls)</td><td>Order-MRL 1D-CNN (<em>d</em>=128)</td><td>96.60 &plusmn; 0.59%</td><td>95.36 &plusmn; 0.66%</td><td>92.67 &plusmn; 0.83%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <figure>
+    <img src="../assets/fig3_dual_dataset_benchmark.png" alt="Dual-dataset benchmark comparison" />
+    <figcaption><strong>Figure 3.</strong> 5-seed accuracy (&plusmn;1 SD) across CWRU (gain shortcuts and unseen spall severity wall) and uOttawa (time-domain degradation vs. order-domain generalization across speed regimes).</figcaption>
+  </figure>
+
+  <p><strong>Paired Significance:</strong> On pooled 5-seed uOttawa <code>unseen_speed_profile</code> windows, <code>Order-CNN</code> beats <code>Time-Env CNN</code> by <strong>+7.61 pp</strong> (95% bootstrap CI [+6.61, +8.58] pp, McNemar 305 vs. 39 discordant windows, exact <em>p</em> = 0.0). Per-class recall for the hardest <em>ball</em> fault jumps from 77.97% (Time CNN) to <strong>84.49%</strong> (Order CNN; 82.61% Order-MRL). Envelope-first COT also beats Order-first COT by <strong>+1.57 pp</strong> (95% CI [+0.80, +2.35] pp, McNemar 128 vs. 73, <em>p</em> = 0.000128).</p>
+
+  <h2>4. Factorial Ablations &amp; Elastic INT8 Pareto Frontier</h2>
+  <div class="two-col">
+    <div class="table-wrap">
+      <div class="table-cap">Table 2. Single-factor ablations on uOttawa <code>unseen_speed_profile</code> (5 seeds).</div>
+      <table>
+        <thead>
+          <tr><th>Variant</th><th>Acc (&plusmn;SD)%</th><th>Ball Rec%</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Envelope-First 4-Band (1024 PPR)</strong></td><td><strong>92.67 &plusmn; 0.83</strong></td><td><strong>82.61</strong></td></tr>
+          <tr><td>+ Cepstrum Pre-Whitening (CPW)</td><td>92.33 &plusmn; 0.51</td><td>80.44</td></tr>
+          <tr><td>Order-First 4-Band COT</td><td>91.10 &plusmn; 0.33</td><td>78.55</td></tr>
+          <tr><td>Single Band 0.5&ndash;5 kHz only</td><td>90.10 &plusmn; 0.36</td><td>72.03</td></tr>
+          <tr><td>Single Band 5&ndash;15 kHz only</td><td>81.14 &plusmn; 0.19</td><td>60.00</td></tr>
+          <tr><td>Single Band 15&ndash;35 kHz only</td><td>65.49 &plusmn; 0.76</td><td>64.35</td></tr>
+          <tr><td>Encoder 256 PPR / 64 PPR / 32 PPR</td><td>92.64 / 92.70 / 92.67</td><td>82.61</td></tr>
+          <tr><td>1024 PPR + 2% Edge Timing Jitter</td><td>92.67 &plusmn; 0.83</td><td>82.61</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-cap">Table 3. Matryoshka ONNX FP32 vs. Static INT8 Pareto (<em>d</em> &isin; {8..128}).</div>
+      <table>
+        <thead>
+          <tr><th><em>d</em></th><th>Prec</th><th>Acc (&plusmn;SD)%</th><th>Size (KB)</th><th>p50 (ms)</th><th>ECE</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>8</td><td>FP32</td><td>88.07 &plusmn; 7.66</td><td>62.69</td><td>0.1549</td><td>0.1777</td></tr>
+          <tr><td>8</td><td>INT8</td><td>88.04 &plusmn; 7.88</td><td><strong>19.71</strong></td><td><strong>0.1045</strong></td><td>0.1802</td></tr>
+          <tr><td>16</td><td>FP32</td><td>92.07 &plusmn; 1.26</td><td>66.88</td><td>0.4440</td><td>0.0556</td></tr>
+          <tr><td>16</td><td>INT8</td><td>91.96 &plusmn; 1.56</td><td>20.78</td><td>0.1908</td><td>0.0525</td></tr>
+          <tr><td>32</td><td>FP32</td><td>92.56 &plusmn; 0.74</td><td>75.26</td><td>0.2236</td><td>0.0260</td></tr>
+          <tr><td>32</td><td>INT8</td><td>92.62 &plusmn; 0.55</td><td>22.92</td><td>0.2238</td><td><strong>0.0265</strong></td></tr>
+          <tr><td>64</td><td>FP32</td><td>92.65 &plusmn; 0.73</td><td>92.01</td><td>0.1143</td><td>0.0432</td></tr>
+          <tr><td>64</td><td>INT8</td><td>92.82 &plusmn; 0.66</td><td>27.21</td><td>0.0763</td><td>0.0425</td></tr>
+          <tr><td>128</td><td>FP32</td><td>92.67 &plusmn; 0.83</td><td>125.52</td><td>0.1800</td><td>0.0510</td></tr>
+          <tr><td>128</td><td>INT8</td><td><strong>92.93 &plusmn; 0.60</strong></td><td>35.77</td><td>0.1205</td><td>0.0514</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <figure>
+    <img src="../assets/fig4_ablations_and_mrl_pareto.png" alt="Ablations and Matryoshka ONNX INT8 Pareto" />
+    <figcaption><strong>Figure 4.</strong> Factorial signal-processing and tachometer resolution ablations (left) and the Matryoshka prefix width &times; static QDQ INT8 ONNX Pareto curve (right). Logit parity between PyTorch and FP32 ONNX holds within 1.62 &times; 10<sup>-5</sup>.</figcaption>
+  </figure>
+
+  <h2>5. Calibration, Conformal Prediction &amp; Closed-Loop Replay</h2>
+  <div class="table-wrap">
+    <div class="table-cap">Table 4. Calibration under distribution shift (Raw Single / OOF Temp. Scaling / 5-Seed Ensemble ECE %) and 90% Target Conformal Coverage.</div>
+    <table>
+      <thead>
+        <tr><th>Protocol</th><th>Raw ECE</th><th>OOF TS ECE</th><th>5-Seed Ens ECE</th><th>Split APS Cov</th><th>Online ACI Cov</th><th>ACI Set Size</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>uOttawa random_window</td><td>2.63%</td><td>1.99%</td><td>1.79%</td><td>97.38%</td><td>97.04%</td><td>1.011</td></tr>
+        <tr><td>uOttawa unseen_trial</td><td>3.04%</td><td>2.69%</td><td>1.98%</td><td>97.05%</td><td><strong>96.25%</strong></td><td>1.024</td></tr>
+        <tr><td>uOttawa unseen_speed_profile</td><td>5.10%</td><td>6.17%</td><td><strong>3.02%</strong></td><td>93.53%</td><td><strong>93.93%</strong></td><td>1.070</td></tr>
+        <tr><td>CWRU unseen_load</td><td>3.13%</td><td>2.38%</td><td><strong>2.05%</strong></td><td>96.88%</td><td>95.71%</td><td>1.016</td></tr>
+        <tr><td>CWRU unseen_fault_size (7/14/21 mil)</td><td>48.88%</td><td>47.05%</td><td>43.96%</td><td>50.16%</td><td><strong>73.04%</strong></td><td>1.836</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <figure>
+    <img src="../assets/fig5_calibration_and_conformal.png" alt="Calibration and Conformal under shift" />
+    <figcaption><strong>Figure 5.</strong> Calibration shift (left): OOD unseen speed profiles double Raw ECE (2.63% &rarr; 5.10%) and expose OOF Temperature Scaling overfitting to ID validation (6.17%), while 5-seed ensembling halves OOD ECE to 3.02%. Right: Online ACI vs. Split APS rolling coverage on reversing profiles.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../assets/fig6_closed_loop_supervisor.png" alt="Closed-loop Trial-3 replay" />
+    <figcaption><strong>Figure 6.</strong> Trial-3 zero-PyTorch INT8 edge replay (<code>H-C-3</code> healthy &rarr; <code>C-C-3</code> combined fault, 8 windows): 0 false derates over healthy reversing speeds (967 &rarr; 1206 RPM), transitioning cleanly to latched <code>SAFE_STOP</code> (velocity scale 1.0 &rarr; 0.8 &rarr; 0.6) at <em>t</em> = 12.43 s.</figcaption>
+  </figure>
+
+  <h2>6. Negative Results, Failure Modes &amp; Limitations</h2>
+  <ol>
+    <li><strong>CWRU Unseen Fault Severity Collapse:</strong> Holding out defect diameter (7/14/21 mil) collapses accuracy across all architectures (Gain-Sensitive MLP <strong>59.29%</strong> with <strong>33.40%</strong> on the 14 mil fold; Env CNN <strong>59.63%</strong>; MRL Env CNN <strong>47.72%</strong>). Spall width alters impulse duration and carrier modulation spectrum, demonstrating that gain-invariant features alone cannot generalize across unseen fault geometries.</li>
+    <li><strong>Split APS Failure &amp; ACI Finite-Horizon Lag:</strong> Under CWRU severity shift, Split APS breaks exchangeability and drops to <strong>50.16%</strong> empirical coverage; Online ACI lifts coverage by <strong>+22.88 pp</strong> to <strong>73.04%</strong> but lags the 90% target on short non-stationary sequences with &gamma; = 0.05.</li>
+    <li><strong>ID-Tuned Temperature Scaling Degeneration Under Shift:</strong> Fitting scalar <em>T</em> on proper-train OOF logits slightly worsens uOttawa unseen-speed ECE (5.10% &rarr; 6.17%) and NLL (0.4472 &rarr; 0.7656), confirming Ovadia et al.'s finding that post-hoc calibration misbehaves out-of-distribution relative to ensembles (3.02% ECE).</li>
+    <li><strong>Matryoshka Capacity Cliff at <em>d</em> = 8 &amp; Encoder Smoothness Boundary:</strong> While <em>d</em> &isin; {16..128} sits tightly around 92%&ndash;93%, <em>d</em> = 8 INT8 exhibits high seed variance (<strong>88.04 &plusmn; 7.88%</strong>, ECE 0.1802). Meanwhile, downsampling clean encoders to 32 PPR still provides 64 smoothed edges per 2-revolution window (92.67%), whereas physical signal dropouts trigger hardware health gating in <code>audit_sensors</code>.</li>
+  </ol>
+
+  <h2>References</h2>
+  <ol class="refs">
+    <li>Kusupati et al., <em>Matryoshka Representation Learning</em>, NeurIPS 2022 (arXiv:2205.13147).</li>
+    <li>Devvrit et al., <em>MatFormer: Nested Transformer for Elastic Inference</em>, NeurIPS 2024 (arXiv:2310.07707).</li>
+    <li>Nair, Datta, Dean, Jain, Kusupati, <em>MatQuant: Multi-Scale Quantization for Precision-Elastic Inference</em>, ICML 2025 (arXiv:2502.06786).</li>
+    <li>Beyer et al., <em>FlexiViT: One Model for All Patch Sizes</em>, CVPR 2023; Gemma Team, <em>Gemma 3 Technical Report</em>, 2025 (arXiv:2503.19786).</li>
+    <li>Jacob et al., <em>Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference</em>, CVPR 2018; Nagel et al., 2021 (arXiv:2106.08295).</li>
+    <li>Das et al., <em>TimesFM: A Decoder-Only Foundation Model for Time-Series Forecasting</em>, ICML 2024 (arXiv:2310.10688); Baur et al., <em>HeAR</em>, 2024 (arXiv:2403.02522).</li>
+    <li>Narayanswamy et al., <em>LSM</em>, ICLR 2025 (arXiv:2410.13638); Xu et al., <em>LSM-2</em>, 2025 (arXiv:2506.05321); Zhang et al., <em>SensorLM</em>, NeurIPS 2025 D&amp;B (arXiv:2506.09108).</li>
+    <li>Randall &amp; Antoni, <em>Rolling element bearing diagnostics -- A tutorial</em>, MSSP 2011; Borghesani et al., <em>Cepstrum pre-whitening</em>, MSSP 2013.</li>
+    <li>Smith &amp; Randall, <em>CWRU benchmark study</em>, MSSP 2015; Huang &amp; Baddour, <em>uOttawa variable-speed dataset</em>, Data in Brief 2018; Zhao et al., ISA Trans. 2020.</li>
+    <li>Guo et al., <em>On Calibration of Modern Neural Networks</em>, ICML 2017; Lakshminarayanan et al., <em>Deep Ensembles</em>, NeurIPS 2017; Ovadia et al., NeurIPS 2019 (arXiv:1906.02530).</li>
+    <li>Geifman &amp; El-Yaniv, NeurIPS 2017; Romano, Sesia, Cand&egrave;s, <em>APS</em>, NeurIPS 2020; Gibbs &amp; Cand&egrave;s, <em>ACI</em>, NeurIPS 2021 (arXiv:2106.00170); Angelopoulos et al., ICLR 2024.</li>
+  </ol>
+</body>
+</html>
