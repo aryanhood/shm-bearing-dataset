@@ -1,14 +1,18 @@
-# BearingBench: Physics-Informed Order-Domain Inductive Bias, Matryoshka Compression, and Conformal Uncertainty Under Non-Stationary Sensor Shift
+# BearingBench — Physics-Informed Edge ML for Motor Bearing Faults
 
 > **[Technical Report (PDF)](paper/technical_report.pdf)** · **[LaTeX Source](paper/technical_report.tex)** · **[BibTeX](paper/references.bib)** · **[Reproducible Results JSON](artifacts/benchmark_results.json)**
 
-**BearingBench** evaluates physics-informed time-series representations, width- and precision-elastic neural inference (`MatryoshkaOrderCNN` + static QDQ INT8 ONNX), and conformal uncertainty quantification across **100 real laboratory recordings** (40 CWRU 12 kHz recordings / 2,331 windows; 60 uOttawa 200 kHz non-stationary speed-varying recordings / 699 windows) over **5 random seeds** (`{7, 19, 42, 73, 101}`) under strictly leak-free recording-grouped and cross-regime protocols.
+### Overview (What & Why)
+
+- **The Problem:** Standard machine learning models are great at detecting motor bearing faults in the lab when rotational speed is constant, but fail in the real world when a motor accelerates or decelerates—and they are often too large or overconfident for tiny edge microcontrollers.
+- **What I Built:** A physics-informed pipeline that extracts vibration envelopes and resamples them by **shaft rotation angle** instead of time, trains a single width-elastic CNN (`MatryoshkaOrderCNN`) that can be sliced and quantized into a **20–36 KB INT8 ONNX model** (running in **0.12 ms** on a CPU with zero PyTorch dependency), and wraps predictions in online conformal uncertainty bounds.
+- **What We Found:** Tested across **100 real laboratory recordings** (CWRU & uOttawa, 5 seeds), angular order tracking boosts accuracy on unseen speed profiles from **88.41% to 96.02%**, while exposing where standard ML fails completely (unseen fault defect sizes).
 
 ![BearingBench Architecture Pipeline](assets/fig1_pipeline_architecture.svg)
 
 ---
 
-## 1. Key Findings & Contributions
+## 1. Key Findings & Technical Summary
 
 1. **Order-Domain Physics Outperforms Time-Domain Learning Across Unseen Speed Regimes:** On uOttawa `unseen_speed_profile` (train monotonic ramps `A/B` &harr; test reversing profiles `C/D`), order-domain 1D-CNN reaches **`96.02% ± 0.52%`** vs. **`88.41% ± 1.19%`** for time-domain envelope CNN (`+7.61 pp`, 95% pooled bootstrap CI `[+6.61, +8.58] pp`, exact McNemar `305 vs. 39`, `p < 1e-10`). Extracting 4-band structural Hilbert envelopes *before* angular resampling (**Envelope-First COT**) outperforms Order-First resampling (`92.67%` vs. `91.10%`, `+1.57 pp`, `p = 0.000128`).
 2. **Kilobyte-Scale Elastic INT8 Deployment (Zero PyTorch Runtime):** Training a single `MatryoshkaOrderCNN` across nested channel widths `d in {8, 16, 32, 64, 128}` and applying physical prefix slicing + proper-train-calibrated static QDQ INT8 quantization shrinks the `d=128` ONNX model `3.51x` to **`35.77 KB`** at **`92.93% ± 0.60%`** accuracy (`0.1205 ms` p50 CPU latency, `1.62e-5` max Torch/ONNX logit diff), while `d=16` INT8 achieves **`91.96% ± 1.56%`** in **`20.78 KB`** and `d=8` INT8 reaches **`88.04% ± 7.88%`** in **`19.71 KB`**.
