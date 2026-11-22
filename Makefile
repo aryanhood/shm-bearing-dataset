@@ -1,7 +1,7 @@
-.PHONY: install check lint typecheck test download train benchmark replay plots rebuild
+.PHONY: install check lint typecheck test demo
 
 install:
-	pip install -e ".[train,dev]"
+	pip install -e ".[dev]"
 
 lint:
 	ruff check .
@@ -11,23 +11,9 @@ typecheck:
 	mypy
 
 test:
-	pytest --cov=orderguard
+	pytest --cov=vibcheck
 
 check: lint typecheck test
 
-download:
-	orderguard download
-
-train:
-	orderguard train
-
-benchmark:
-	orderguard benchmark
-
-replay:
-	orderguard replay
-
-plots:
-	orderguard plots
-
-rebuild: download train benchmark replay plots
+demo:
+	vibcheck check examples/motor_inner_fault.csv --rpm 1750 --bearing 6205 --report report.html
