@@ -1,6 +1,6 @@
 # BearingBench — Motor Health Check & Edge ML
 
-> **[Technical Report (PDF)](paper/technical_report.pdf)** · **[Browser App (`web/`)](web/)** · **[C++20 Edge CLI (`cpp/`)](cpp/)** · **[Reproducible Results JSON](artifacts/benchmark_results.json)**
+> **[Live Browser App](https://shm-bearing-dataset.vercel.app)** · **[Technical Report (PDF)](paper/technical_report.pdf)** · **[C++20 Edge CLI (`cpp/`)](cpp/)** · **[Reproducible Results JSON](artifacts/benchmark_results.json)**
 
 ### What It Does (In Plain English)
 

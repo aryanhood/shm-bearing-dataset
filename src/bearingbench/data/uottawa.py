@@ -167,12 +167,17 @@ def _resample_envelopes_on_degraded_track(
 
     band_windows: list[NDArray[np.float64]] = []
     for env_t in time_envs:
-        env_theta = np.asarray(CubicSpline(t_axis, env_t, extrapolate=False)(t_theta), dtype=np.float64)
+        env_theta = np.asarray(
+            CubicSpline(t_axis, env_t, extrapolate=False)(t_theta), dtype=np.float64
+        )
         env_theta = np.nan_to_num(env_theta, nan=0.0)
         band_windows.append(env_theta.reshape(n_target_windows, win_len))
 
     return np.stack(
-        [extract_multiband_cnn_input([bw[k] for bw in band_windows]) for k in range(n_target_windows)]
+        [
+            extract_multiband_cnn_input([bw[k] for bw in band_windows])
+            for k in range(n_target_windows)
+        ]
     )
 
 
@@ -244,7 +249,9 @@ def prepare_uottawa_dataset(raw_dir: Path, *, use_cache: bool = True) -> Uottawa
         if not audit.ok:
             raise RuntimeError(f"{spec.stem} failed sensor audit: {audit.issues}")
 
-        time_envs, order_sigs = multiband_order_envelopes(rec.vibration, rec.fs_hz, track, use_cpw=False)
+        time_envs, order_sigs = multiband_order_envelopes(
+            rec.vibration, rec.fs_hz, track, use_cpw=False
+        )
         band_wins: list[NDArray[np.float64]] = []
         win_rpms = np.empty(0, dtype=np.float64)
         for osig in order_sigs:
@@ -258,18 +265,28 @@ def prepare_uottawa_dataset(raw_dir: Path, *, use_cache: bool = True) -> Uottawa
         t_cnn = extract_time_cnn_input(time_envs, rec.fs_hz, n_win)
 
         # Clean Envelope-First Order-SES (132-d RF + 4x400 CNN)
-        o_rf = np.stack([extract_multiband_order_physics([bw[k] for bw in band_wins]) for k in range(n_win)])
-        c_cnn = np.stack([extract_multiband_cnn_input([bw[k] for bw in band_wins]) for k in range(n_win)])
+        o_rf = np.stack(
+            [extract_multiband_order_physics([bw[k] for bw in band_wins]) for k in range(n_win)]
+        )
+        c_cnn = np.stack(
+            [extract_multiband_cnn_input([bw[k] for bw in band_wins]) for k in range(n_win)]
+        )
 
         # Order-First COT ablation
-        of_sigs = order_first_cot_envelopes(rec.vibration, rec.fs_hz, track, bands_hz=CARRIER_BANDS_HZ)
+        of_sigs = order_first_cot_envelopes(
+            rec.vibration, rec.fs_hz, track, bands_hz=CARRIER_BANDS_HZ
+        )
         of_wins = [slice_order_windows(osig)[0][:n_win] for osig in of_sigs]
-        of_cnn = np.stack([extract_multiband_cnn_input([bw[k] for bw in of_wins]) for k in range(n_win)])
+        of_cnn = np.stack(
+            [extract_multiband_cnn_input([bw[k] for bw in of_wins]) for k in range(n_win)]
+        )
 
         # Cepstrum Pre-Whitening + Envelope-First COT ablation
         _, cpw_sigs = multiband_order_envelopes(rec.vibration, rec.fs_hz, track, use_cpw=True)
         cpw_wins = [slice_order_windows(osig)[0][:n_win] for osig in cpw_sigs]
-        cpw_cnn = np.stack([extract_multiband_cnn_input([bw[k] for bw in cpw_wins]) for k in range(n_win)])
+        cpw_cnn = np.stack(
+            [extract_multiband_cnn_input([bw[k] for bw in cpw_wins]) for k in range(n_win)]
+        )
 
         # Tachometer degradation sweeps using identical time_envs
         t256 = _resample_envelopes_on_degraded_track(

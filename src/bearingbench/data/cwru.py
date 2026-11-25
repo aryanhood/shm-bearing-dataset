@@ -232,10 +232,13 @@ def cwru_fold_splits(
         return out
 
     if protocol == "unseen_load":
-        return [(f"load_{hp}hp", data.load != hp, data.load == hp) for hp in sorted(set(data.load.tolist()))]
+        return [
+            (f"load_{hp}hp", data.load != hp, data.load == hp)
+            for hp in sorted(set(data.load.tolist()))
+        ]
 
     if protocol == "unseen_fault_size":
-        # Normal recordings have diameter=0; hold out load_hp in {0,1,2} across folds, keep 3 HP in train.
+        # Normal recordings have diameter=0; hold out load_hp in {0,1,2}, keep 3 HP in train.
         normal_idx = CWRU_CLASSES.index("normal")
         out_fs: list[tuple[str, NDArray[np.bool_], NDArray[np.bool_]]] = []
         for fold_idx, diam in enumerate((7, 14, 21)):

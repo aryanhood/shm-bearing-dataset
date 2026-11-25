@@ -1,4 +1,4 @@
-"""Signal processing operations for Envelope-First COT, Order-First ablation, and CWRU/uOttawa features."""
+"""Signal processing ops for Envelope-First COT, Order-First ablation, and CWRU/uOttawa."""
 
 from __future__ import annotations
 
@@ -75,7 +75,11 @@ def squared_envelope_time(
     use_cpw: bool = False,
 ) -> NDArray[np.float64]:
     """Compute band-limited squared envelope in the time domain."""
-    x = cepstrum_prewhiten(signal) if use_cpw else (np.asarray(signal, dtype=np.float64) - np.mean(signal))
+    x = (
+        cepstrum_prewhiten(signal)
+        if use_cpw
+        else (np.asarray(signal, dtype=np.float64) - np.mean(signal))
+    )
     x = np.asarray(x, dtype=np.float64).ravel()
     nyq = 0.5 * fs_hz
     if bandpass_hz is not None:
@@ -527,7 +531,9 @@ def extract_cwru_gain_sensitive_16(window: NDArray[np.float64], rpm: float) -> N
         _peak_ring_snr(ef, es, fhz["bpfo"], tol=5.0, ring=20.0, min_axis=5.0),
         _peak_ring_snr(ef, es, fhz["bsf"], tol=5.0, ring=20.0, min_axis=5.0),
     ]
-    return np.asarray([float(np.log10(rms)), kurt, crest, skew, shape, *bands, *faults], dtype=np.float64)
+    return np.asarray(
+        [float(np.log10(rms)), kurt, crest, skew, shape, *bands, *faults], dtype=np.float64
+    )
 
 
 def extract_cwru_gain_invariant_physics(
@@ -549,7 +555,9 @@ def extract_cwru_gain_invariant_physics(
         es_norm = es / scale
         for key in ("bpfi", "bpfo", "bsf_2x"):
             feats.append(_peak_ring_snr(ef, es_norm, fhz[key], tol=4.5, ring=18.0, min_axis=4.0))
-            feats.append(_peak_ring_snr(ef, es_norm, 2.0 * fhz[key], tol=5.5, ring=20.0, min_axis=4.0))
+            feats.append(
+                _peak_ring_snr(ef, es_norm, 2.0 * fhz[key], tol=5.5, ring=20.0, min_axis=4.0)
+            )
         feats.append(_peak_ring_snr(ef, es_norm, fhz["shaft_1x"], tol=3.5, ring=12.0, min_axis=4.0))
         # Normalized band spectral entropy
         p = es_norm[ef >= 5.0] ** 2 + EPS
