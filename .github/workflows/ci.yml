@@ -75,3 +75,43 @@ jobs:
               assert abs(float(p.sum()) - 1.0) < 1e-5
               print(model_file, 'ok:', p.round(4))
           "
+
+  web:
+    name: Web Studio (React + TypeScript + ONNX WASM)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck, lint, test, and build
+        run: npm run check
+
+  cpp-edge:
+    name: C++20 ONNX Edge Runner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch ONNX Runtime 1.32.0 C++ SDK
+        run: python scripts/fetch_onnxruntime.py
+
+      - name: Configure and build C++20 edge binary
+        run: |
+          cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build cpp/build --parallel
+
+      - name: Verify C++20 parity against Python ONNX & benchmark
+        run: ./cpp/build/bearingbench-edge --model artifacts/order_mrl_int8.onnx --verify-ref cpp/test_data/reference_windows.csv --runs 200 --warmup 20

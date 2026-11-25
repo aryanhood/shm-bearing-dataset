@@ -12,7 +12,7 @@ dist/
 build/
 
 # Raw datasets & downloaded .mat / derived feature caches
-data/
+/data/
 *.part
 
 # OS / editors
@@ -20,3 +20,10 @@ data/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local native caches, C++ build outputs, and web build dependencies
+.cache/
+cpp/build/
+web/node_modules/
+web/dist/
+web/public/ort/

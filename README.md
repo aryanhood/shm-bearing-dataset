@@ -1,12 +1,26 @@
-# BearingBench — Physics-Informed Edge ML for Motor Bearing Faults
+# BearingBench — Motor Health Check & Edge ML
 
-> **[Technical Report (PDF)](paper/technical_report.pdf)** · **[LaTeX Source](paper/technical_report.tex)** · **[BibTeX](paper/references.bib)** · **[Reproducible Results JSON](artifacts/benchmark_results.json)**
+> **[Technical Report (PDF)](paper/technical_report.pdf)** · **[Browser App (`web/`)](web/)** · **[C++20 Edge CLI (`cpp/`)](cpp/)** · **[Reproducible Results JSON](artifacts/benchmark_results.json)**
 
-### Overview (What & Why)
+### What It Does (In Plain English)
 
-- **The Problem:** Standard machine learning models are great at detecting motor bearing faults in the lab when rotational speed is constant, but fail in the real world when a motor accelerates or decelerates—and they are often too large or overconfident for tiny edge microcontrollers.
-- **What I Built:** A physics-informed pipeline that extracts vibration envelopes and resamples them by **shaft rotation angle** instead of time, trains a single width-elastic CNN (`MatryoshkaOrderCNN`) that can be sliced and quantized into a **20–36 KB INT8 ONNX model** (running in **0.12 ms** on a CPU with zero PyTorch dependency), and wraps predictions in online conformal uncertainty bounds.
-- **What We Found:** Tested across **100 real laboratory recordings** (CWRU & uOttawa, 5 seeds), angular order tracking boosts accuracy on unseen speed profiles from **88.41% to 96.02%**, while exposing where standard ML fails completely (unseen fault defect sizes).
+- **Real-world problem:** Factory motors speed up and slow down all day. Normal vibration AI gets fooled when motor RPM changes—and standard ISO 20816-3 plant meters miss early bearing wear completely (**36/36** CWRU faults sit inside "safe" Zone A).
+- **What this builds:** Resamples vibration signals by **shaft rotation angle** instead of clock time, shrinks a width-elastic CNN (`MatryoshkaOrderCNN`) into a **35.77 KB INT8 ONNX** model, wraps decisions in online uncertainty bounds, and ships as a **browser web app (`web/`)**, a **native C++20 CLI (`cpp/`)**, and a **Python edge package**.
+- **Measured results:** Tested across **100 real lab recordings** (CWRU & uOttawa, 5 seeds), angular order tracking boosts accuracy on unseen speed ramps from **88.41% to 96.02%** (`p < 1e-10`), while the C++20 runner matches Python (`5/5` classes, `4.43e-9` worst prob diff) at **`46.6 µs` p50 (`0.0466 ms`)** single-thread CPU latency.
+
+### Three Ways to Run It Right Now
+
+1. **Interactive Browser App (`web/`) — runs `order_mrl_int8.onnx` directly in WebAssembly + accepts `.csv`/`.wav` files:**
+   ```bash
+   cd web && npm install && npm run check && npm run dev
+   ```
+2. **Native C++20 Edge CLI (`cpp/`) — zero-Python ONNX Runtime runner (`46.6 µs` p50 CPU):**
+   ```bash
+   python scripts/fetch_onnxruntime.py
+   cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release && cmake --build cpp/build --parallel
+   ./cpp/build/bearingbench-edge --model artifacts/order_mrl_int8.onnx --verify-ref cpp/test_data/reference_windows.csv --runs 500
+   ```
+3. **Python Edge Runtime (zero PyTorch):** see [Section 7](#7-one-command-reproducibility--verification) below.
 
 ![BearingBench Architecture Pipeline](assets/fig1_pipeline_architecture.svg)
 
